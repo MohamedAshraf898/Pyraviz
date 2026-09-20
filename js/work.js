@@ -10,7 +10,7 @@
 (() => {
   'use strict';
 
-  const $  = (s, c = document) => c.querySelector(s);
+  const $ = (s, c = document) => c.querySelector(s);
   const $$ = (s, c = document) => Array.from(c.querySelectorAll(s));
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -27,6 +27,14 @@
     if (!p) return '';
     if (!/[\/.]/.test(p)) p = `assets/projects/${p}.jpg`;
     return (window.__ASSETS && window.__ASSETS[p]) || p;
+  };
+  // responsive webp variants (assets/projects/m/pNN-{480,800,1200}.webp) for the standard project images;
+  // anything else (custom paths, URLs, the inlined single-file build) falls back to the plain src
+  const RS = (src, sizes) => {
+    const m = /^assets\/projects\/(p\d+)\.jpg$/.exec(src || '');
+    if (!m) return '';
+    const set = [480, 800, 1200].map(w => `assets/projects/m/${m[1]}-${w}.webp ${w}w`).join(', ');
+    return ` srcset="${set}" sizes="${sizes}"`;
   };
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const slugify = s => String(s).toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -75,7 +83,7 @@
     a.href = `#/work/${encodeURIComponent(p.slug)}`;
     a.style.setProperty('--d', ((n % 3) * 0.09) + 's');
     a.innerHTML =
-      `<div class="card__media"><img src="${esc(A(p.cover))}" alt="" loading="lazy" decoding="async"></div>` +
+      `<div class="card__media"><img src="${esc(A(p.cover))}"${RS(A(p.cover), '(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 33vw')} alt="" loading="lazy" decoding="async"></div>` +
       `<div class="card__info"><h3 class="card__title">${esc(p.title)}</h3>` +
       `<p class="card__client">${esc(p.client)}</p>` +
       `<span class="card__cat">${esc(p.category)} · ${esc(p.year)}</span></div>`;
@@ -246,7 +254,7 @@
   function galleryHTML(p) {
     return p.gallery.map((g, i) =>
       `<button class="g" type="button" data-i="${i}" aria-label="Open image ${i + 1} of ${p.gallery.length}">` +
-      `<img src="${esc(A(g.src))}" alt="${esc(g.alt || g.caption || '')}" loading="lazy" decoding="async">` +
+      `<img src="${esc(A(g.src))}"${RS(A(g.src), '(max-width: 900px) 60vw, 45vw')} alt="${esc(g.alt || g.caption || '')}" loading="lazy" decoding="async">` +
       `<span class="g__n">${pad(i + 1)}</span></button>`
     ).join('');
   }
@@ -258,7 +266,7 @@
     if (!hasAny) return '';
     const badge = imgs.length
       ? `<svg class="story__badge" viewBox="0 0 200 200" aria-hidden="true"><defs><path id="sb" d="M100,100 m-76,0 a76,76 0 1,1 152,0 a76,76 0 1,1 -152,0"/></defs>` +
-        `<text><textPath href="#sb" textLength="472" lengthAdjust="spacing">Case study • ${esc(p.year)} • Openrange • </textPath></text><circle cx="100" cy="100" r="5" fill="currentColor"/></svg>`
+      `<text><textPath href="#sb" textLength="472" lengthAdjust="spacing">Case study • ${esc(p.year)} • Openrange • </textPath></text><circle cx="100" cy="100" r="5" fill="currentColor"/></svg>`
       : '';
     const credits = s.credits.length
       ? `<dl class="story__credits">${s.credits.map(c => `<div><dt>${esc(c.role)}</dt><dd>${esc(c.name)}</dd></div>`).join('')}</dl>`
@@ -268,10 +276,10 @@
       ${s.lead ? `<h2 class="story__lead" data-words>${esc(s.lead)}</h2>` : ''}
       <div class="story__grid">
         <span class="story__num" aria-hidden="true">${pad(p.index + 1)}</span>
-        ${imgs[0] ? `<figure class="story__img story__img--a" data-par="-1"><img src="${esc(A(imgs[0].src))}" alt="${esc(imgs[0].alt || '')}" loading="lazy" decoding="async"></figure>` : ''}
+        ${imgs[0] ? `<figure class="story__img story__img--a" data-par="-1"><img src="${esc(A(imgs[0].src))}"${RS(A(imgs[0].src), '(max-width: 900px) 84vw, 42vw')} alt="${esc(imgs[0].alt || '')}" loading="lazy" decoding="async"></figure>` : ''}
         ${badge}
         <div class="story__text r">${s.body.map(t => `<p>${esc(t)}</p>`).join('')}${credits}</div>
-        ${imgs[1] ? `<figure class="story__img story__img--b" data-par="1"><img src="${esc(A(imgs[1].src))}" alt="${esc(imgs[1].alt || '')}" loading="lazy" decoding="async"></figure>` : ''}
+        ${imgs[1] ? `<figure class="story__img story__img--b" data-par="1"><img src="${esc(A(imgs[1].src))}"${RS(A(imgs[1].src), '(max-width: 900px) 84vw, 42vw')} alt="${esc(imgs[1].alt || '')}" loading="lazy" decoding="async"></figure>` : ''}
       </div>
     </section>`;
   }
@@ -293,7 +301,7 @@
           <dl class="pj__meta r" style="--d:.65s">${meta.map(m => `<div><dt>${esc(m[0])}</dt><dd>${esc(m[1])}</dd></div>`).join('')}</dl>
         </div>
       </header>
-      <figure class="pj__main" data-par="1"><img src="${esc(A(hero))}" alt="${esc(p.title)}" decoding="async"></figure>
+      <figure class="pj__main" data-par="1"><img src="${esc(A(hero))}"${RS(A(hero), '100vw')} alt="${esc(p.title)}" decoding="async" fetchpriority="high"></figure>
       ${p.gallery.length ? `<section class="pj__gallery" aria-label="Gallery">
         <div class="pj__gallery-head r"><h2>Gallery</h2><span>${p.gallery.length} image${p.gallery.length === 1 ? '' : 's'}</span></div>
         <div class="pj__grid" id="pjGrid">${galleryHTML(p)}</div>
@@ -303,7 +311,7 @@
         <a class="next" href="#/work/${encodeURIComponent(next.slug)}">
           <span class="next__label">Next project · ${pad(next.index + 1)} / ${pad(n)}</span>
           <span class="next__title">${esc(next.title)}</span>
-          <figure class="next__img"><img src="${esc(A(next.cover))}" alt="" loading="lazy"></figure>
+          <figure class="next__img"><img src="${esc(A(next.cover))}"${RS(A(next.cover), '27vw')} alt="" loading="lazy" decoding="async"></figure>
         </a>
         <div class="pj__pn">
           <a href="#/work/${encodeURIComponent(prev.slug)}">&larr; ${esc(prev.title)}</a>

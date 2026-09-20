@@ -293,7 +293,8 @@
   ].map(n => `assets/${n}.jpg`);
   // window.__ASSETS only exists in the single-file build (images inlined, keyed by path)
   const asset = p => (window.__ASSETS && window.__ASSETS[p]) || p;
-  const trailSrc = trailNames.map(asset);
+  // the trail shows small thumbnails: use the 640w webp instead of the full-size jpg
+  const trailSrc = trailNames.map(n => asset(n) !== n ? asset(n) : n.replace('assets/', 'assets/m/').replace('.jpg', '-640.webp'));
   let trailIdx = 0, zTop = 1;
   const last = { x: -999, y: -999 };
 
@@ -404,9 +405,10 @@
     mouse.y = lerp(mouse.y, mouse.ty, .06);
     const moving = Math.abs(mouse.x - mouse.tx) > .002 || Math.abs(mouse.y - mouse.ty) > .002;
     if (dirty || moving) {
-      updateHero();
+      // reads first, layout-affecting writes last: avoids a forced synchronous reflow every frame
       updateScrubs();
       updateParallax();
+      updateHero();
       dirty = false;
     }
     requestAnimationFrame(frame);
