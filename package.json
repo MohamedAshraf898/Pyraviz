@@ -1,0 +1,10 @@
+{
+  "name": "openrange",
+  "private": true,
+  "scripts": {
+    "build": "esbuild css/style.css --minify --outfile=css/style.min.css && esbuild js/main.js --minify --outfile=js/main.min.js && esbuild js/work.js --minify --outfile=js/work.min.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

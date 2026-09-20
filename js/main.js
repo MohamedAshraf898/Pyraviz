@@ -107,7 +107,7 @@
       if (v >= 100 && !done) {
         done = true;
         clearTimeout(cap);
-        merge();
+        requestAnimationFrame(merge); // measure on a clean layout (the counter just changed)
         return;
       }
       requestAnimationFrame(tick);
@@ -414,14 +414,31 @@
     requestAnimationFrame(frame);
   }
 
-  // fonts change layout → measure again once they land
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(onResize);
-  window.addEventListener('load', onResize);
+  // run fn once the browser has painted, when layout is clean, so reading it does not force a reflow
+  const afterPaint = fn => requestAnimationFrame(() => setTimeout(fn, 0));
 
-  measureHero();
-  measureParallax();
-  requestAnimationFrame(frame);
+  // fonts change layout → measure again once they land
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => afterPaint(onResize));
+  window.addEventListener('load', () => afterPaint(onResize));
+
+  afterPaint(() => { measureHero(); measureParallax(); requestAnimationFrame(frame); });
   runLoader();
+
+  // hero feature: a small file loads first, the full-size one swaps in (same picture) on the first interaction,
+  // well before the tile grows during the scroll
+  (function upgradeFeature() {
+    const img = feature && $('img', feature);
+    if (!img || !img.dataset.hi) return;
+    const hi = matchMedia('(max-width: 900px)').matches ? img.dataset.hiM : img.dataset.hi;
+    const go = () => {
+      const im = new Image();
+      im.src = hi;
+      (im.decode ? im.decode() : Promise.resolve()).catch(() => {}).then(() => { img.removeAttribute('srcset'); img.src = hi; });
+    };
+    const evs = ['scroll', 'wheel', 'touchstart', 'pointerdown', 'keydown'];
+    const once = () => { evs.forEach(e => window.removeEventListener(e, once)); go(); };
+    evs.forEach(e => window.addEventListener(e, once, { passive: true }));
+  })();
 
   // small API for work.js (router, project page)
   window.Site = {
