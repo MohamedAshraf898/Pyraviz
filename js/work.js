@@ -83,7 +83,7 @@
     a.href = `#/work/${encodeURIComponent(p.slug)}`;
     a.style.setProperty('--d', ((n % 3) * 0.09) + 's');
     a.innerHTML =
-      `<div class="card__media"><img src="${esc(A(p.cover))}"${RS(A(p.cover), '(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 33vw')} alt="" loading="lazy" decoding="async"></div>` +
+      `<div class="card__media"><img src="${esc(A(p.cover))}"${RS(A(p.cover), '(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 33vw')} width="1200" height="800" alt=" loading="lazy" decoding="async"></div>` +
       `<div class="card__info"><h3 class="card__title">${esc(p.title)}</h3>` +
       `<p class="card__client">${esc(p.client)}</p>` +
       `<span class="card__cat">${esc(p.category)} · ${esc(p.year)}</span></div>`;
