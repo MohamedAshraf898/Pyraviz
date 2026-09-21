@@ -149,22 +149,32 @@
     const [fx, fy] = el.dataset.fly.split(',').map(Number);
     return { el, fx, fy, depth: [16, 26, 24, 14, 30, 22, 34, 18, 20, 32, 28][i] || 20 };
   });
-  let featStart = { l: 0, t: 0, w: 0, h: 0 };
-  let stageW = 0, stageH = 0; // what the tile grows to: exactly the size of the pinned stage
+  const slot = $('#heroSlot');
+  const featImg = feature && $('img', feature);
+  const IA = parseFloat(featImg && featImg.dataset.ar) || 1.5; // aspect ratio of the featured picture
+  let featStart = { l: 0, t: 0, w: 0, h: 0 };   // where the tile rests (from the slot)
+  let stageW = 0, stageH = 0;                    // what the tile grows to: exactly the size of the pinned stage
+  let Wi = 0, Hi = 0, fl = 0, ft = 0;            // the layer: the picture at full-bleed size, centred on the stage
   const about = $('#studio');
   const aboutKicker = $('#heroKicker');
   let heroDist = 1;   // total pinned scroll
   let growDist = 1;   // the part of it used by the image growing (unchanged from before the about text was added)
   const ABOUT_AT = .66; // the tile is full-bleed at .65 of growDist: the about text starts right after
+  let heroP = 0;      // current progress of the growing tile (the header uses it to pick black or white)
+  const hl = { ct: -1, t: -1, a: '', k: '', grow: null, off: null }; // what was last written, to skip identical writes
 
   function measureHero() {
     if (!hero) return;
-    feature.style.left = feature.style.top = feature.style.width = feature.style.height = '';
-    feature.style.borderRadius = '';
-    featStart = { l: feature.offsetLeft, t: feature.offsetTop, w: feature.offsetWidth, h: feature.offsetHeight };
+    featStart = { l: slot.offsetLeft, t: slot.offsetTop, w: slot.offsetWidth, h: slot.offsetHeight };
     stageW = feature.parentElement.clientWidth; stageH = feature.parentElement.clientHeight;
+    Hi = Math.max(stageH, stageW / IA); Wi = Hi * IA;
+    fl = (stageW - Wi) / 2; ft = (stageH - Hi) / 2;
+    feature.style.width = Wi + 'px'; feature.style.height = Hi + 'px';
+    feature.style.left = fl + 'px'; feature.style.top = ft + 'px';
     heroDist = Math.max(1, hero.offsetHeight - vh);
     growDist = heroDist * (vw <= 900 ? 2 / 3 : 2.4 / 3.4);
+    hl.t = -1; // force a redraw
+    hero.classList.add('is-set'); // the layer is in place: show it
   }
 
   const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -173,47 +183,90 @@
     mouse.ty = (e.clientY / vh - .5) * 2;
   }, { passive: true });
 
-  function updateHero(force) {
+  if (hero) new IntersectionObserver(es => hero.classList.toggle('is-vis', es[0].isIntersecting), { rootMargin: '20% 0px' }).observe(hero);
+
+  function updateHero() {
     if (!hero || view !== 'home') return;
     const top = hero.getBoundingClientRect().top;
     if (top < -hero.offsetHeight || top > vh) return; // off-screen
     const p = clamp(-top / growDist, 0, 1);
+    heroP = p;
+    const growing = p > .01;
+    if (hl.grow !== growing) { hl.grow = growing; hero.classList.toggle('is-growing', growing); }
 
-    // copy fades up and out
+    // copy fades up and out (only while it is still visible)
     const ct = clamp(p / .16, 0, 1);
-    heroCopy.style.opacity = 1 - ct;
-    heroCopy.style.transform = `translate(-50%, calc(-50% - ${ct * 60}px))`;
-
-    // floating cards drift outward, scale up, fade
-    const ft = easeIO(clamp((p - .03) / .5, 0, 1));
-    const fo = 1 - clamp((p - .06) / .4, 0, 1);
-    for (const c of cards) {
-      const dx = c.fx * ft * vw * .34 + mouse.x * c.depth;
-      const dy = c.fy * ft * vh * .42 + mouse.y * c.depth * .7;
-      c.el.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${1 + ft * .45})`;
-      c.el.style.opacity = fo;
+    if (ct !== hl.ct) {
+      hl.ct = ct;
+      heroCopy.style.opacity = 1 - ct;
+      heroCopy.style.transform = `translate(-50%, calc(-50% - ${ct * 60}px))`;
     }
 
-    // featured tile grows to full-bleed
+    // floating cards drift outward, scale up, fade; once they are gone they are hidden and cost nothing
+    if (p < .5) {
+      if (hl.off !== false) { hl.off = false; hero.classList.remove('cards-off'); }
+      const ft2 = easeIO(clamp((p - .03) / .5, 0, 1));
+      const fo = 1 - clamp((p - .06) / .4, 0, 1);
+      for (const c of cards) {
+        const dx = c.fx * ft2 * vw * .34 + mouse.x * c.depth;
+        const dy = c.fy * ft2 * vh * .42 + mouse.y * c.depth * .7;
+        c.el.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${1 + ft2 * .45})`;
+        c.el.style.opacity = fo;
+      }
+    } else if (hl.off !== true) { hl.off = true; hero.classList.add('cards-off'); }
+
+    // featured tile grows to full-bleed: one transform + one clip-path on a fixed-size layer.
+    // Same picture as before: the image is fitted (cover) into a box that grows from the tile to the stage.
     const t = easeIO(clamp((p - .1) / .55, 0, 1));
-    if (t <= 0 && !force) {
-      feature.style.left = feature.style.top = feature.style.width = feature.style.height = '';
-      feature.style.borderRadius = '';
-    } else {
-      feature.style.left = lerp(featStart.l, 0, t) + 'px';
-      feature.style.top = lerp(featStart.t, 0, t) + 'px';
-      feature.style.width = lerp(featStart.w, stageW, t) + 'px';
-      feature.style.height = lerp(featStart.h, stageH, t) + 'px';
-      feature.style.borderRadius = lerp(2, 0, t) + 'px';
+    if (t !== hl.t) {
+      hl.t = t;
+      const w = lerp(featStart.w, stageW, t), h = lerp(featStart.h, stageH, t);
+      const l = lerp(featStart.l, 0, t), tt = lerp(featStart.t, 0, t);
+      const f = Math.max(h, w / IA) / Hi;                 // scale of the layer so the picture covers the box
+      const tx = l + w / 2 - fl - f * Wi / 2, ty = tt + h / 2 - ft - f * Hi / 2;
+      const iy = Hi / 2 - h / (2 * f), ix = Wi / 2 - w / (2 * f);
+      feature.style.transform = `translate3d(${tx.toFixed(2)}px, ${ty.toFixed(2)}px, 0) scale(${f.toFixed(5)})`;
+      feature.style.clipPath = `inset(${iy.toFixed(2)}px ${ix.toFixed(2)}px round ${(lerp(2, 0, t) / f).toFixed(2)}px)`;
     }
 
     // about text: fades in over the full-bleed image, words light up with the scroll, then the kicker
     if (about) {
       const from = growDist * ABOUT_AT;
       const a = clamp((-top - from) / Math.max(1, heroDist - from), 0, 1);
-      about.style.setProperty('--a', clamp(a / .18, 0, 1).toFixed(3));
+      const av = clamp(a / .18, 0, 1).toFixed(3), kv = clamp((a - .6) / .2, 0, 1).toFixed(3);
+      if (av !== hl.a) { hl.a = av; about.style.setProperty('--a', av); }
       if (aboutScrub) setScrub(aboutScrub, clamp((a - .1) / .5, 0, 1));
-      aboutKicker.style.setProperty('--k', clamp((a - .6) / .2, 0, 1).toFixed(3));
+      if (kv !== hl.k) { hl.k = kv; aboutKicker.style.setProperty('--k', kv); }
+    }
+  }
+
+  /* header / side labels on phones: black or white from what is behind them (see the CSS above) */
+  const toneMQ = matchMedia('(max-width: 900px), (hover: none)');
+  const toneEls = [$('.nav__logo'), $('.nav__toggle'), ...$$('.side')].filter(Boolean);
+  function toneAt(x, y) {
+    const el = document.elementsFromPoint(x, y).find(e => !e.closest('.nav'));
+    if (!el) return 'light';
+    if (el.closest('.svc-card--paper')) return 'light';
+    if (el.closest('.svc-card--black')) return 'dark';
+    if (el.closest('#hero')) return heroP > .55 ? 'dark' : 'light'; // white page until the tile has grown over the header
+    if (el.closest('.pj__story')) return 'light';
+    if (el.closest('.theme-dark, .pj, .lb, .menu')) return 'dark';
+    return 'light';
+  }
+  let toneAt0 = 0, toneTimer = 0;
+  function updateTone() {
+    if (!toneMQ.matches) return;
+    const now = performance.now();
+    if (now - toneAt0 < 150) { // a colour change does not need to be frame-exact: at most ~6 checks a second, plus one when scrolling stops
+      if (!toneTimer) toneTimer = setTimeout(() => { toneTimer = 0; toneAt0 = 0; dirty = true; }, 170);
+      return;
+    }
+    toneAt0 = now;
+    for (const e of toneEls) {
+      const r = e.getBoundingClientRect();
+      if (!r.width) continue;
+      const tone = toneAt(r.left + r.width / 2, r.top + r.height / 2);
+      if (e.dataset.tone !== tone) e.dataset.tone = tone;
     }
   }
 
@@ -723,6 +776,7 @@
       updateTeam();
       updateParallax();
       updateHero();
+      updateTone();
       dirty = false;
     }
     requestAnimationFrame(frame);
@@ -738,10 +792,10 @@
   afterPaint(() => { measureHero(); measureParallax(); measureTeam(); measureStack(); buildLogos(); requestAnimationFrame(frame); });
   runLoader();
 
-  // hero feature: a small file loads first, the full-size one swaps in (same picture) on the first interaction,
-  // well before the tile grows during the scroll
+  // hero feature: a small file loads first; the full-size one swaps in (same picture) once the loader is done and the
+  // browser is idle, so nothing is being decoded while the visitor starts scrolling
   (function upgradeFeature() {
-    const img = feature && $('img', feature);
+    const img = featImg;
     if (!img || !img.dataset.hi) return;
     const hi = matchMedia('(max-width: 900px)').matches ? img.dataset.hiM : img.dataset.hi;
     const go = () => {
@@ -749,9 +803,8 @@
       im.src = hi;
       (im.decode ? im.decode() : Promise.resolve()).catch(() => {}).then(() => { img.removeAttribute('srcset'); img.src = hi; });
     };
-    const evs = ['scroll', 'wheel', 'touchstart', 'pointerdown', 'keydown'];
-    const once = () => { evs.forEach(e => window.removeEventListener(e, once)); go(); };
-    evs.forEach(e => window.addEventListener(e, once, { passive: true }));
+    const later = () => (window.requestIdleCallback ? requestIdleCallback(go, { timeout: 3000 }) : setTimeout(go, 1500));
+    if (body.classList.contains('is-ready')) later(); else document.addEventListener('site:ready', later, { once: true });
   })();
 
   // small API for work.js (router, project page)
