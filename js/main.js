@@ -33,13 +33,13 @@
     let i = 0;
     text.split(' ').forEach((word, wi, arr) => {
       const w = document.createElement('span');
-      w.style.display = 'inline-block';
+      w.className = 'wd'; // each word clips its own letters, so every line of the heading rises on its own
       w.setAttribute('aria-hidden', 'true');
       [...word].forEach(c => {
         const s = document.createElement('span');
         s.className = 'ch';
         s.textContent = c;
-        s.style.transitionDelay = (0.55 + i++ * 0.035) + 's';
+        s.style.transitionDelay = (0.55 + i++ * 0.03) + 's';
         w.appendChild(s);
       });
       h.appendChild(w);
@@ -147,7 +147,7 @@
   const feature = $('#heroFeature');
   const cards = $$('.hero__card').map((el, i) => {
     const [fx, fy] = el.dataset.fly.split(',').map(Number);
-    return { el, fx, fy, depth: [14, 22, 30, 18, 36][i] || 20 };
+    return { el, fx, fy, depth: [16, 26, 24, 14, 30, 22, 34, 18, 20, 32, 28][i] || 20 };
   });
   let featStart = { l: 0, t: 0, w: 0, h: 0 };
   let stageW = 0, stageH = 0; // what the tile grows to: exactly the size of the pinned stage
