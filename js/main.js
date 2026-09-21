@@ -19,6 +19,7 @@
 
   const body = document.body;
   let vw = document.documentElement.clientWidth, vh = innerHeight; // clientWidth: the page width, without any scrollbar
+  const isTouch = matchMedia('(hover: none)').matches;
   let scrollY = window.scrollY;
   let view = 'home'; // 'home' | 'project' (set by work.js)
   let dirty = true;  // something changed: re-run the scroll-driven updates on the next frame
@@ -150,11 +151,12 @@
     return { el, fx, fy, depth: [16, 26, 24, 14, 30, 22, 34, 18, 20, 32, 28][i] || 20 };
   });
   const slot = $('#heroSlot');
+  const pic = $('#heroPic');
   const featImg = feature && $('img', feature);
   const IA = parseFloat(featImg && featImg.dataset.ar) || 1.5; // aspect ratio of the featured picture
   let featStart = { l: 0, t: 0, w: 0, h: 0 };   // where the tile rests (from the slot)
   let stageW = 0, stageH = 0;                    // what the tile grows to: exactly the size of the pinned stage
-  let Wi = 0, Hi = 0, fl = 0, ft = 0;            // the layer: the picture at full-bleed size, centred on the stage
+  let Hi = 0, Hp = 0;                            // picture height at full-bleed; and the (smaller) height of its layer
   const about = $('#studio');
   const aboutKicker = $('#heroKicker');
   let heroDist = 1;   // total pinned scroll
@@ -166,15 +168,23 @@
   function measureHero() {
     if (!hero) return;
     featStart = { l: slot.offsetLeft, t: slot.offsetTop, w: slot.offsetWidth, h: slot.offsetHeight };
-    stageW = feature.parentElement.clientWidth; stageH = feature.parentElement.clientHeight;
-    Hi = Math.max(stageH, stageW / IA); Wi = Hi * IA;
-    fl = (stageW - Wi) / 2; ft = (stageH - Hi) / 2;
-    feature.style.width = Wi + 'px'; feature.style.height = Hi + 'px';
-    feature.style.left = fl + 'px'; feature.style.top = ft + 'px';
-    heroDist = Math.max(1, hero.offsetHeight - vh);
+    const stage = feature.parentElement;
+    stageW = stage.clientWidth; stageH = stage.clientHeight;
+    Hi = Math.max(stageH, stageW / IA);
+    // the picture layer only needs about the picture's own resolution: on a 3x phone screen a full-size layer would
+    // be ~40MB of GPU memory for a 1000px photo. Draw it smaller and let the transform scale it up.
+    const dpr = window.devicePixelRatio || 1, srcW = vw <= 900 ? 1000 : 1400;
+    const q = Math.min(1, (srcW * 1.7) / (Hi * IA * dpr));
+    Hp = Hi * q;
+    const Wp = Hp * IA;
+    pic.style.width = Wp + 'px'; pic.style.height = Hp + 'px';
+    pic.style.left = (stageW - Wp) / 2 + 'px'; pic.style.top = (stageH - Hp) / 2 + 'px';
+    // the pinned distance is the height of the scroll track minus the pinned box, both fixed lengths: it does not
+    // change when Safari's address bar collapses (window.innerHeight does)
+    heroDist = Math.max(1, hero.offsetHeight - stage.parentElement.offsetHeight);
     growDist = heroDist * (vw <= 900 ? 2 / 3 : 2.4 / 3.4);
     hl.t = -1; // force a redraw
-    hero.classList.add('is-set'); // the layer is in place: show it
+    hero.classList.add('is-set'); // in place: show it
   }
 
   const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -215,18 +225,18 @@
       }
     } else if (hl.off !== true) { hl.off = true; hero.classList.add('cards-off'); }
 
-    // featured tile grows to full-bleed: one transform + one clip-path on a fixed-size layer.
-    // Same picture as before: the image is fitted (cover) into a box that grows from the tile to the stage.
+    // featured tile grows to full-bleed with transforms only. The picture is fitted (cover) into a box that grows from
+    // the tile to the stage, exactly as before: the window layer is scaled to the box, the picture layer is
+    // counter-scaled so it keeps its proportions.
     const t = easeIO(clamp((p - .1) / .55, 0, 1));
     if (t !== hl.t) {
       hl.t = t;
       const w = lerp(featStart.w, stageW, t), h = lerp(featStart.h, stageH, t);
       const l = lerp(featStart.l, 0, t), tt = lerp(featStart.t, 0, t);
-      const f = Math.max(h, w / IA) / Hi;                 // scale of the layer so the picture covers the box
-      const tx = l + w / 2 - fl - f * Wi / 2, ty = tt + h / 2 - ft - f * Hi / 2;
-      const iy = Hi / 2 - h / (2 * f), ix = Wi / 2 - w / (2 * f);
-      feature.style.transform = `translate3d(${tx.toFixed(2)}px, ${ty.toFixed(2)}px, 0) scale(${f.toFixed(5)})`;
-      feature.style.clipPath = `inset(${iy.toFixed(2)}px ${ix.toFixed(2)}px round ${(lerp(2, 0, t) / f).toFixed(2)}px)`;
+      const sx = w / stageW, sy = h / stageH;                 // window scale
+      const Hb = Math.max(h, w / IA);                          // height of the picture, fitted to cover the box
+      feature.style.transform = `translate3d(${l.toFixed(2)}px, ${tt.toFixed(2)}px, 0) scale(${sx.toFixed(5)}, ${sy.toFixed(5)})`;
+      pic.style.transform = `scale(${(Hb / (Hp * sx)).toFixed(5)}, ${(Hb / (Hp * sy)).toFixed(5)})`;
     }
 
     // about text: fades in over the full-bleed image, words light up with the scroll, then the kicker
@@ -756,12 +766,19 @@
      MAIN LOOP
      ========================================================== */
   window.addEventListener('scroll', () => { scrollY = window.scrollY; dirty = true; }, { passive: true });
-  function onResize() {
+  let lastW = innerWidth;
+  function onResize(fromResizeEvent) {
+    // iOS Safari fires a resize every time its address bar collapses or returns (same width, ~100px of height).
+    // The pinned stage does not change size then (it is 100svh), and nothing measured depends on innerHeight,
+    // so re-measuring in the middle of a scroll would only make the hero stutter.
+    const st = feature && feature.parentElement;
+    if (fromResizeEvent === true && isTouch && st && innerWidth === lastW && st.clientWidth === stageW && st.clientHeight === stageH) { vh = innerHeight; return; }
+    lastW = innerWidth;
     vw = document.documentElement.clientWidth; vh = innerHeight; scrollY = window.scrollY;
     measureHero(); measureParallax(); measureTeam(); measureStack(); buildLogos(); dirty = true;
   }
   let rt;
-  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(onResize, 120); });
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => onResize(true), 120); });
 
   function frame() {
     mouse.x = lerp(mouse.x, mouse.tx, .06);
