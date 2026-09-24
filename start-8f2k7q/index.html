@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- private page: not linked from the site and kept out of search engines -->
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Start a project | PyraViz</title>
+  <link rel="icon" href="data:,">
+  <link rel="preload" href="../assets/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../css/style.min.css">
+  <style>
+    body { background: #000; color: #fff; }
+    .fp { max-width: 1100px; margin: 0 auto; padding: clamp(28px, 4vw, 56px) var(--pad) clamp(70px, 9vw, 140px); }
+    .fp__top { display: flex; justify-content: space-between; align-items: center; }
+    .fp__logo { font-family: var(--serif); text-transform: uppercase; letter-spacing: .01em; font-size: clamp(14px, 1.2vw, 18px); }
+    .fp__back { font-size: calc(var(--fs) * .9); opacity: .65; transition: opacity .3s ease; }
+    .fp__back:hover { opacity: 1; }
+    .fp__head { padding: clamp(60px, 9vw, 150px) 0 clamp(40px, 5vw, 80px); }
+    .fp__kicker { font-size: calc(var(--fs) * .9); opacity: .6; }
+    .fp__title { font-family: var(--serif); font-weight: 200; letter-spacing: -.04em; line-height: 1.02; font-size: clamp(46px, 8vw, 128px); margin-top: .12em; }
+    .fp__lead { max-width: 30em; margin-top: 1.2em; font-size: calc(var(--fs) * 1.15); line-height: 1.5; opacity: .75; }
+
+    .ff { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(26px, 3vw, 44px) clamp(24px, 3vw, 48px); }
+    .ff__full { grid-column: 1 / -1; }
+    .ff__f { display: grid; gap: .55em; }
+    .ff__l { font-size: calc(var(--fs) * .85); opacity: .6; }
+    .ff__l i { font-style: normal; opacity: .6; }
+    .ff input[type="text"], .ff input[type="email"], .ff input[type="tel"], .ff select, .ff textarea {
+      width: 100%; background: none; color: #fff; font: inherit; font-size: calc(var(--fs) * 1.2);
+      border: 0; border-bottom: 1px solid rgba(255, 255, 255, .28); border-radius: 0; padding: .45em 0; outline: none;
+      transition: border-color .3s ease; -webkit-appearance: none; appearance: none;
+    }
+    .ff select { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23fff' stroke-width='1.3'/%3E%3C/svg%3E") no-repeat right .2em center; padding-right: 1.6em; cursor: pointer; }
+    .ff select option { color: #000; }
+    .ff textarea { resize: vertical; min-height: 7.5em; line-height: 1.45; }
+    .ff input:focus, .ff select:focus, .ff textarea:focus { border-bottom-color: #fff; }
+    .ff ::placeholder { color: #fff; opacity: .3; }
+    .ff__f.is-err input, .ff__f.is-err select, .ff__f.is-err textarea { border-bottom-color: #ff6a5a; }
+    .ff__f.is-err .ff__l { color: #ff6a5a; opacity: 1; }
+
+    /* service chips (checkboxes) */
+    .ff__chips { display: flex; flex-wrap: wrap; gap: .5em .45em; margin-top: .35em; border: 0; padding: 0; }
+    .ff__chip { position: relative; }
+    .ff__chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+    .ff__chip span { display: inline-block; border: 1px solid rgba(255, 255, 255, .28); border-radius: 999px; padding: .45em 1.05em; font-size: calc(var(--fs) * .92); transition: background .3s ease, color .3s ease, border-color .3s ease; }
+    .ff__chip input:hover + span { border-color: #fff; }
+    .ff__chip input:checked + span { background: #fff; color: #000; border-color: #fff; }
+    .ff__chip input:focus-visible + span { outline: 1px solid #fff; outline-offset: 3px; }
+
+    .ff__hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; } /* honeypot: people never see it, bots fill it */
+    .ff__end { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-top: clamp(10px, 2vw, 30px); }
+    .ff__msg { font-size: calc(var(--fs) * .92); opacity: .75; min-height: 1.4em; }
+    .ff__msg.is-err { color: #ff6a5a; opacity: 1; }
+    .ff .pill { font-size: var(--fs); padding: .8em 1.9em; }
+    .ff .pill[disabled] { opacity: .5; pointer-events: none; }
+
+    @media (max-width: 700px) {
+      .ff { grid-template-columns: 1fr; }
+      .ff__end { flex-direction: column-reverse; align-items: stretch; }
+      .ff .pill { justify-content: center; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="fp">
+    <header class="fp__top">
+      <a class="fp__logo" href="../">PyraViz</a>
+      <a class="fp__back" href="../">&larr; Back to the site</a>
+    </header>
+
+    <div class="fp__head">
+      <p class="fp__kicker">Project brief</p>
+      <h1 class="fp__title">Let&rsquo;s make something.</h1>
+      <p class="fp__lead">Tell us a little about you and the project. We read every brief and reply within two working days.</p>
+    </div>
+
+    <form class="ff" id="briefForm" novalidate>
+      <label class="ff__f"><span class="ff__l">Full name</span>
+        <input type="text" name="name" autocomplete="name" required maxlength="120"></label>
+      <label class="ff__f"><span class="ff__l">Email</span>
+        <input type="email" name="email" autocomplete="email" required maxlength="160"></label>
+      <label class="ff__f"><span class="ff__l">Phone <i>(optional)</i></span>
+        <input type="tel" name="phone" autocomplete="tel" maxlength="40"></label>
+      <label class="ff__f"><span class="ff__l">Company / brand <i>(optional)</i></span>
+        <input type="text" name="company" autocomplete="organization" maxlength="160"></label>
+
+      <fieldset class="ff__f ff__full" style="border:0;padding:0;margin:0">
+        <legend class="ff__l">What do you need? <i>(pick any)</i></legend>
+        <div class="ff__chips">
+          <label class="ff__chip"><input type="checkbox" name="services" value="Art Direction"><span>Art Direction</span></label>
+          <label class="ff__chip"><input type="checkbox" name="services" value="Branding"><span>Branding</span></label>
+          <label class="ff__chip"><input type="checkbox" name="services" value="Content"><span>Content</span></label>
+          <label class="ff__chip"><input type="checkbox" name="services" value="Design"><span>Design</span></label>
+          <label class="ff__chip"><input type="checkbox" name="services" value="Digital &amp; Web"><span>Digital &amp; Web</span></label>
+          <label class="ff__chip"><input type="checkbox" name="services" value="Film Production"><span>Film Production</span></label>
+          <label class="ff__chip"><input type="checkbox" name="services" value="Photography"><span>Photography</span></label>
+          <label class="ff__chip"><input type="checkbox" name="services" value="Post Production"><span>Post Production</span></label>
+          <label class="ff__chip"><input type="checkbox" name="services" value="Strategy"><span>Strategy</span></label>
+        </div>
+      </fieldset>
+
+      <label class="ff__f"><span class="ff__l">Budget</span>
+        <select name="budget" required>
+          <option value="" selected disabled>Choose a range</option>
+          <option>Under $5k</option>
+          <option>$5k &ndash; $15k</option>
+          <option>$15k &ndash; $50k</option>
+          <option>$50k+</option>
+          <option>Not sure yet</option>
+        </select></label>
+      <label class="ff__f"><span class="ff__l">Timeline</span>
+        <select name="timeline" required>
+          <option value="" selected disabled>When do you want to start?</option>
+          <option>As soon as possible</option>
+          <option>Within a month</option>
+          <option>1 &ndash; 3 months</option>
+          <option>Just exploring</option>
+        </select></label>
+
+      <label class="ff__f ff__full"><span class="ff__l">Tell us about the project</span>
+        <textarea name="message" required maxlength="5000" placeholder="Goals, audience, references, anything that helps."></textarea></label>
+
+      <div class="ff__hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+
+      <div class="ff__end">
+        <p class="ff__msg" id="briefMsg" role="status" aria-live="polite"></p>
+        <button class="pill pill--solid" type="submit" id="briefSend">Send brief</button>
+      </div>
+    </form>
+  </main>
+
+  <script src="form.js"></script>
+</body>
+
+</html>

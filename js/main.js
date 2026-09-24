@@ -738,6 +738,38 @@
   toggle.addEventListener('click', () => setMenu(!body.classList.contains('menu-open')));
   window.addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
 
+  // Contact overlay: #contact-form is a direct, shareable link as well as an in-site overlay.
+  const contactModal = $('#contactForm');
+  const contactForm = $('#contactEnquiryForm');
+  let contactFocus = null;
+  function setContact(open, updateHash = true) {
+    if (!contactModal) return;
+    if (open) {
+      contactFocus = document.activeElement;
+      setMenu(false); body.classList.add('contact-open'); contactModal.classList.add('is-open');
+      contactModal.setAttribute('aria-hidden', 'false');
+      if (updateHash && location.hash !== '#contact-form') history.pushState(null, '', '#contact-form');
+      setTimeout(() => contactForm?.querySelector('input')?.focus(), 100);
+    } else {
+      body.classList.remove('contact-open'); contactModal.classList.remove('is-open'); contactModal.setAttribute('aria-hidden', 'true');
+      if (updateHash && location.hash === '#contact-form') history.replaceState(null, '', location.pathname + location.search);
+      contactFocus?.focus?.({ preventScroll: true });
+    }
+  }
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-contact-open], a[href="#contact-form"]')) { e.preventDefault(); setContact(true); }
+    if (e.target.closest('[data-contact-close]')) setContact(false);
+  });
+  window.addEventListener('hashchange', () => setContact(location.hash === '#contact-form', false));
+  if (location.hash === '#contact-form') setContact(true, false);
+  window.addEventListener('keydown', e => { if (e.key === 'Escape' && contactModal?.classList.contains('is-open')) { e.stopPropagation(); setContact(false); } }, true);
+  contactForm?.addEventListener('submit', e => {
+    e.preventDefault();
+    if (!contactForm.reportValidity()) return;
+    contactForm.querySelector('.contact-form__success').hidden = false;
+    contactForm.reset();
+  });
+
   function goTo(hash) {
     if (hash === '#top' || hash === '#') return window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
     const t = $(hash);

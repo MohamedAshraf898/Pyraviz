@@ -39,7 +39,7 @@
       <a href="#team" class="menu__link" data-menu-link><span>Team</span></a>
       <a href="#originals" class="menu__link" data-menu-link><span>Originals</span></a>
       <a href="#studio" class="menu__link" data-menu-link><span>The Studio</span></a>
-      <a href="#contact" class="menu__link" data-menu-link><span>Contact</span></a>
+      <a href="#contact-form" class="menu__link" data-menu-link><span>Contact</span></a>
     </div>
     <div class="menu__foot">
       <a href="mailto:hello@openrange.studio">hello@openrange.studio</a>
@@ -347,7 +347,8 @@
 
       <div class="footer__contact" data-reveal style="--d:.12s">
         <p class="footer__kicker">write to</p>
-        <a class="footer__mail" href="mailto:hello@pyraviz.com">hello@pyraviz.com</a>
+        <a class="footer__mail" href="#contact-form" data-contact-open>Start a project</a>
+        <a class="footer__email-link" href="mailto:hello@pyraviz.com">hello@pyraviz.com</a>
         <div class="footer__info">
           <p class="footer__city">Alexandria</p>
           <address class="footer__addr">55 Al-Hidayah st.<br>Mahmoud Rashad Plaza</address>
@@ -389,6 +390,24 @@
       <p class="footer__copy">&copy;2026 PyraViz. All rights reserved.</p>
     </div>
   </footer>
+  <!-- Contact lives above the site, but #contact-form can be shared as a direct link. -->
+  <section class="contact-modal" id="contactForm" role="dialog" aria-modal="true" aria-labelledby="contactFormTitle" aria-hidden="true">
+    <button class="contact-modal__backdrop" type="button" data-contact-close tabindex="-1" aria-label="Close contact form"></button>
+    <div class="contact-modal__panel" role="document">
+      <div class="contact-modal__bar"><p>PyraViz / New enquiry</p><button class="contact-modal__close" type="button" data-contact-close aria-label="Close contact form">Close <span aria-hidden="true">×</span></button></div>
+      <div class="contact-modal__content">
+        <div><p class="contact-modal__eyebrow">Let’s make something</p><h2 id="contactFormTitle">Tell us what<br>you’re imagining.</h2></div>
+        <form class="contact-form" id="contactEnquiryForm">
+          <label>Your name <input name="name" autocomplete="name" required></label>
+          <label>Email address <input name="email" type="email" autocomplete="email" required></label>
+          <label>What can we help with? <select name="project" required><option value="" selected disabled>Select a service</option><option>Creative direction</option><option>Film &amp; production</option><option>Brand experience</option><option>Something else</option></select></label>
+          <label>Tell us a little more <textarea name="message" rows="3" required></textarea></label>
+          <button class="contact-form__submit" type="submit">Send enquiry <span aria-hidden="true">↗</span></button>
+          <p class="contact-form__note">We’ll get back to you within two working days.</p><p class="contact-form__success" role="status" hidden>Thank you — your enquiry is on its way.</p>
+        </form>
+      </div>
+    </div>
+  </section>
   <!-- page-transition curtain, cursor label, lightbox -->
   <div class="curtain" id="curtain" aria-hidden="true"><span class="curtain__t" id="curtainTitle"></span></div>
   <div class="vcur" id="vcur" aria-hidden="true"><span class="vcur__b">View</span></div>
