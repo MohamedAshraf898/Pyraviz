@@ -782,6 +782,7 @@
       await fetch(contactEndpoint, { method: 'POST', mode: 'no-cors', body: payload });
       success.hidden = false;
       contactForm.reset();
+      setTimeout(() => setContact(false), 700);
     } catch {
       success.textContent = 'Something went wrong. Please try WhatsApp instead.';
       success.hidden = false;
