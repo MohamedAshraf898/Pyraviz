@@ -765,11 +765,10 @@
   window.addEventListener('hashchange', () => setContact(location.hash === '#contact-form', false));
   if (location.hash === '#contact-form') setContact(true, false);
   window.addEventListener('keydown', e => { if (e.key === 'Escape' && contactModal?.classList.contains('is-open')) { e.stopPropagation(); setContact(false); } }, true);
-  contactForm?.addEventListener('submit', async e => {
+  contactForm?.addEventListener('submit', e => {
     e.preventDefault();
     if (!contactForm.reportValidity()) return;
     const submit = contactForm.querySelector('.contact-form__submit');
-    const success = contactForm.querySelector('.contact-form__success');
     const services = [...contactForm.querySelectorAll('input[name="services"]:checked')].map(input => input.value);
     const payload = new URLSearchParams({
       name: contactForm.elements.name.value.trim(),
@@ -777,18 +776,12 @@
       services: services.join(', ')
     });
     submit.disabled = true;
-    try {
-      // Apps Script accepts form-encoded POSTs. no-cors lets its redirecting web-app endpoint receive the lead.
-      await fetch(contactEndpoint, { method: 'POST', mode: 'no-cors', body: payload });
-      success.hidden = false;
-      contactForm.reset();
-      setTimeout(() => setContact(false), 700);
-    } catch {
-      success.textContent = 'Something went wrong. Please try WhatsApp instead.';
-      success.hidden = false;
-    } finally {
-      submit.disabled = false;
-    }
+    // Send without waiting for Apps Script's redirecting response, then close immediately.
+    fetch(contactEndpoint, { method: 'POST', mode: 'no-cors', body: payload })
+      .catch(() => {})
+      .finally(() => { submit.disabled = false; });
+    contactForm.reset();
+    setContact(false);
   });
   contactWhatsapp?.addEventListener('click', () => {
     const name = contactForm?.elements.name?.value.trim();
