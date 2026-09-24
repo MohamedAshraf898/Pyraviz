@@ -741,6 +741,7 @@
   // Contact overlay: #contact-form is a direct, shareable link as well as an in-site overlay.
   const contactModal = $('#contactForm');
   const contactForm = $('#contactEnquiryForm');
+  const contactWhatsapp = $('#contactWhatsapp');
   let contactFocus = null;
   function setContact(open, updateHash = true) {
     if (!contactModal) return;
@@ -768,6 +769,12 @@
     if (!contactForm.reportValidity()) return;
     contactForm.querySelector('.contact-form__success').hidden = false;
     contactForm.reset();
+  });
+  contactWhatsapp?.addEventListener('click', () => {
+    const name = contactForm?.elements.name?.value.trim();
+    const services = [...(contactForm?.querySelectorAll('input[name="services"]:checked') || [])].map(input => input.value);
+    const message = `Hello PyraViz${name ? `, I'm ${name}` : ''}. I'm interested in ${services.length ? services.join(', ') : 'your services'}.`;
+    contactWhatsapp.href = `https://wa.me/201112880001?text=${encodeURIComponent(message)}`;
   });
 
   function goTo(hash) {

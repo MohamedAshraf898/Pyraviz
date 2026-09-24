@@ -91,17 +91,21 @@
           <div class="hero__copy" id="heroCopy">
             <p class="hero__kicker">Creative studio</p>
             <h1 class="hero__title">Thoughtful design, unforgettable impact</h1>
-            <p class="hero__sub">PyraViz is an independent creative, story and production studio. Founder-led and craft-driven,
+            <p class="hero__sub">PyraViz is an independent creative, story and production studio. Founder-led and
+              craft-driven,
               with tight teams, better relationships and work made in Cairo.</p>
           </div>
 
           <!-- the featured card: starts as a small tile, grows to full-bleed -->
-          <div class="hero__slot" id="heroSlot" aria-hidden="true"></div> <!-- where the tile sits at rest (measured by main.js) -->
-          <figure class="hero__feature" id="heroFeature"><div class="hero__pic" id="heroPic">
-            <img src="assets/m/sea-03-640.webp" srcset="assets/m/sea-03-400.webp 400w, assets/m/sea-03-640.webp 640w"
-              sizes="25vw" data-ar="1.5556" data-hi-m="assets/m/sea-03-1000.webp" data-hi="assets/m/sea-03-1400.webp" alt="" class="kb"
-              fetchpriority="high" decoding="async">
-          </div></figure>
+          <div class="hero__slot" id="heroSlot" aria-hidden="true"></div>
+          <!-- where the tile sits at rest (measured by main.js) -->
+          <figure class="hero__feature" id="heroFeature">
+            <div class="hero__pic" id="heroPic">
+              <img src="assets/m/sea-03-640.webp" srcset="assets/m/sea-03-400.webp 400w, assets/m/sea-03-640.webp 640w"
+                sizes="25vw" data-ar="1.5556" data-hi-m="assets/m/sea-03-1000.webp" data-hi="assets/m/sea-03-1400.webp"
+                alt="" class="kb" fetchpriority="high" decoding="async">
+            </div>
+          </figure>
 
           <!-- about: fades in over the full-bleed image once the tile has finished growing (scroll-driven, see main.js) -->
           <div class="hero__about" id="studio">
@@ -391,19 +395,49 @@
     </div>
   </footer>
   <!-- Contact lives above the site, but #contact-form can be shared as a direct link. -->
-  <section class="contact-modal" id="contactForm" role="dialog" aria-modal="true" aria-labelledby="contactFormTitle" aria-hidden="true">
-    <button class="contact-modal__backdrop" type="button" data-contact-close tabindex="-1" aria-label="Close contact form"></button>
+  <section class="contact-modal" id="contactForm" role="dialog" aria-modal="true" aria-labelledby="contactFormTitle"
+    aria-hidden="true">
+    <button class="contact-modal__backdrop" type="button" data-contact-close tabindex="-1"
+      aria-label="Close contact form"></button>
     <div class="contact-modal__panel" role="document">
-      <div class="contact-modal__bar"><p>PyraViz / New enquiry</p><button class="contact-modal__close" type="button" data-contact-close aria-label="Close contact form">Close <span aria-hidden="true">×</span></button></div>
+      <div class="contact-modal__bar">
+        <p>PyraViz / New enquiry</p><button class="contact-modal__close" type="button" data-contact-close
+          aria-label="Close contact form">Close <span aria-hidden="true">×</span></button>
+      </div>
       <div class="contact-modal__content">
-        <div><p class="contact-modal__eyebrow">Let’s make something</p><h2 id="contactFormTitle">Tell us what<br>you’re imagining.</h2></div>
+        <div>
+          <p class="contact-modal__eyebrow">Let’s make something</p>
+          <h2 id="contactFormTitle">Tell us what<br>you’re imagining.</h2>
+        </div>
         <form class="contact-form" id="contactEnquiryForm">
           <label>Your name <input name="name" autocomplete="name" required></label>
-          <label>Email address <input name="email" type="email" autocomplete="email" required></label>
-          <label>What can we help with? <select name="project" required><option value="" selected disabled>Select a service</option><option>Creative direction</option><option>Film &amp; production</option><option>Brand experience</option><option>Something else</option></select></label>
-          <label>Tell us a little more <textarea name="message" rows="3" required></textarea></label>
+          <label>Phone Number <input name="phone" type="tel" autocomplete="tel" required></label>
+          <fieldset class="contact-form__services">
+            <legend>What can we help with?</legend>
+            <div class="contact-form__checks">
+              <label><input name="services" type="checkbox" value="Art Direction"> <span>Visulaization</span></label>
+              <label><input name="services" type="checkbox" value="Branding"> <span>Interior Design</span></label>
+              <label><input name="services" type="checkbox" value="Content"> <span>Exterior Design</span></label>
+              <label><input name="services" type="checkbox" value="Design"> <span>Architechture</span></label>
+              <label><input name="services" type="checkbox" value="Digital and Web"> <span>BIM</span></label>
+              <!-- <label><input name="services" type="checkbox" value="Film Production"> <span>Film
+                  Production</span></label>
+              <label><input name="services" type="checkbox" value="Photography"> <span>Photography</span></label>
+              <label><input name="services" type="checkbox" value="Post Production"> <span>Post
+                  Production</span></label>
+              <label><input name="services" type="checkbox" value="Strategy"> <span>Strategy</span></label> -->
+            </div>
+          </fieldset>
+          <div class="contact-form__actions">
           <button class="contact-form__submit" type="submit">Send enquiry <span aria-hidden="true">↗</span></button>
-          <p class="contact-form__note">We’ll get back to you within two working days.</p><p class="contact-form__success" role="status" hidden>Thank you — your enquiry is on its way.</p>
+          <a class="contact-form__whatsapp" id="contactWhatsapp" href="https://wa.me/201112880001" target="_blank"
+            rel="noopener" aria-label="Send your enquiry on WhatsApp" title="Send on WhatsApp">WhatsApp <svg viewBox="0 0 32 32"
+              aria-hidden="true">
+              <path
+                d="M16 3.2a12.6 12.6 0 0 0-10.7 19.2L4 28.8l6.6-1.7A12.7 12.7 0 1 0 16 3.2Zm0 22.9a10.2 10.2 0 0 1-5.2-1.4l-.4-.2-3.9 1 1-3.8-.3-.4A10.2 10.2 0 1 1 16 26.1Zm5.6-7.6c-.3-.2-1.9-.9-2.1-1s-.5-.2-.7.2-.8 1-1 1.2-.3.3-.6.1a8.4 8.4 0 0 1-2.5-1.6 9.3 9.3 0 0 1-1.7-2.2c-.2-.3 0-.5.1-.6l.5-.6c.2-.2.2-.4.3-.6s0-.4-.1-.6l-1-2.3c-.3-.7-.5-.6-.7-.6h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 3 .1 1.4.2 1.7c.2.4 2.5 3.8 6 5.3.8.4 1.5.6 2 .8.8.2 1.6.2 2.2.1.7-.1 1.9-.8 2.2-1.5s.3-1.4.2-1.5-.2-.2-.5-.4Z"
+                fill="currentColor" />
+            </svg></a></div>
+          <p class="contact-form__success" role="status" hidden>Thank you — your enquiry is on its way.</p>
         </form>
       </div>
     </div>
