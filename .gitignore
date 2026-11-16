@@ -1,2 +1,5 @@
 node_modules/
 .DS_Store
+
+# original renders + spreadsheet (2.8 GB): source for scripts/build-projects.py, kept local
+Pyraviz Website Images/

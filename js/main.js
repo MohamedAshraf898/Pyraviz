@@ -456,6 +456,23 @@
   }, { threshold: .15, rootMargin: '0px 0px -6% 0px' });
   $$('[data-reveal], .proj').forEach(el => io.observe(el));
 
+  /* NUMBERS: count 0 -> data-count the first time each stat is on screen */
+  const countIO = new IntersectionObserver(es => {
+    for (const e of es) {
+      if (!e.isIntersecting) continue;
+      countIO.unobserve(e.target);
+      const el = e.target, target = parseFloat(el.dataset.count) || 0;
+      if (reduce) { el.textContent = target; continue; }
+      const t0 = performance.now(), dur = 2000;
+      (function step(now) {
+        const t = clamp((now - t0) / dur, 0, 1);
+        el.textContent = Math.round(target * easeOut(t));
+        if (t < 1) requestAnimationFrame(step);
+      })(t0);
+    }
+  }, { threshold: .4 });
+  $$('[data-count]').forEach(el => countIO.observe(el));
+
   /* ==========================================================
      PARALLAX  (projects)
      ========================================================== */
@@ -481,18 +498,14 @@
      ========================================================== */
   const trail = $('#originals');
   const layer = $('#trailLayer');
-  const trailNames = [
-    'portrait-01', 'dunes-02', 'sea-03', 'arch-04', 'forest-05', 'fabric-06', 'night-07',
-    'mountains-08', 'still-09', 'pool-10', 'studio-11', 'field-12', 'warm-13'
-  ].map(n => `assets/${n}.jpg`);
-  // window.__ASSETS only exists in the single-file build (images inlined, keyed by path)
-  const asset = p => (window.__ASSETS && window.__ASSETS[p]) || p;
-  // the trail shows small thumbnails: use the 640w webp instead of the full-size jpg
-  const trailSrc = trailNames.map(n => asset(n) !== n ? asset(n) : n.replace('assets/', 'assets/m/').replace('.jpg', '-640.webp'));
+  // project covers (js/projects.js), a random 24 in a random order on every visit
+  const trailPool = (window.PROJECTS || []).map(p => p.slug).filter(Boolean);
+  for (let i = trailPool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [trailPool[i], trailPool[j]] = [trailPool[j], trailPool[i]]; }
+  const trailSrc = trailPool.slice(0, 24).map(s => `assets/work/${s}/cover-480.webp`);
   let trailIdx = 0, zTop = 1;
   const last = { x: -999, y: -999 };
 
-  if (trail && layer) {
+  if (trail && layer && trailSrc.length) {
     // warm the cache once the section is near
     const warm = new IntersectionObserver(es => {
       if (es[0].isIntersecting) { trailSrc.forEach(s => { const i = new Image(); i.src = s; }); warm.disconnect(); }
@@ -503,7 +516,7 @@
       const img = document.createElement('img');
       const k = trailIdx % trailSrc.length;
       img.src = trailSrc[k]; img.alt = ''; img.draggable = false;
-      img.className = 'trail__img' + (trailNames[k] === 'assets/portrait-01.jpg' ? '' : ' land');
+      img.className = 'trail__img land';
       img.style.left = x + 'px'; img.style.top = y + 'px'; img.style.zIndex = ++zTop;
       trailIdx++;
       layer.appendChild(img);
@@ -859,6 +872,12 @@
   window.addEventListener('load', () => afterPaint(onResize));
 
   afterPaint(() => { measureHero(); measureParallax(); measureTeam(); measureStack(); buildLogos(); requestAnimationFrame(frame); });
+  // arriving from another page with a section link (index.html#work): the page starts at the top (see above),
+  // so scroll there once everything is measured
+  document.addEventListener('site:ready', () => {
+    const h = location.hash;
+    if (/^#[\w-]+$/.test(h) && h !== '#contact-form') afterPaint(() => goTo(h));
+  }, { once: true });
   runLoader();
 
   // hero feature: a small file loads first; the full-size one swaps in (same picture) once the loader is done and the

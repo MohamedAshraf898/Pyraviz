@@ -19,23 +19,25 @@
   const hoverable = matchMedia('(hover: hover)').matches;
   const body = document.body;
   const SITE_TITLE = document.title;
+  const metaDesc = document.querySelector('meta[name="description"]');
+  const SITE_DESC = metaDesc ? metaDesc.getAttribute('content') : '';
   const PAGE = 9; // cards per "load more"
 
   /* ---------- data helpers ---------- */
-  // 'p07' -> assets/projects/p07.jpg ; paths / URLs pass through ; single-file build swaps in inlined data
-  const A = p => {
-    if (!p) return '';
-    if (!/[\/.]/.test(p)) p = `assets/projects/${p}.jpg`;
-    return (window.__ASSETS && window.__ASSETS[p]) || p;
-  };
+  // paths / URLs pass through ; single-file build swaps in inlined data
+  const A = p => (p ? (window.__ASSETS && window.__ASSETS[p]) || p : '');
   // responsive webp variants (assets/projects/m/pNN-{480,800,1200}.webp) for the standard project images;
   // anything else (custom paths, URLs, the inlined single-file build) falls back to the plain src
+  // real project covers (scripts/build-projects.py): assets/work/<slug>/cover-{480,800,1200,1800}.webp
   const RS = (src, sizes) => {
-    const m = /^assets\/projects\/(p\d+)\.jpg$/.exec(src || '');
-    if (!m) return '';
-    const set = [480, 800, 1200].map(w => `assets/projects/m/${m[1]}-${w}.webp ${w}w`).join(', ');
-    return ` srcset="${set}" sizes="${sizes}"`;
+    const c = /^assets\/work\/([^/]+)\/cover-\d+\.webp$/.exec(src || '');
+    if (!c) return '';
+    return ` srcset="${[480, 800, 1200, 1800].map(w => `assets/work/${c[1]}/cover-${w}.webp ${w}w`).join(', ')}" sizes="${sizes}"`;
   };
+  // gallery images with a small thumbnail: grid uses the thumb, wide screens / the viewer the full file
+  const GS = (g, sizes) => g.thumb
+    ? `src="${esc(A(g.thumb))}" srcset="${esc(A(g.thumb))} 640w, ${esc(A(g.src))} 1400w" sizes="${sizes}"`
+    : `src="${esc(A(g.src))}"${RS(A(g.src), sizes)}`;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const slugify = s => String(s).toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const pad = n => String(n).padStart(2, '0');
@@ -83,10 +85,10 @@
     a.href = `#/work/${encodeURIComponent(p.slug)}`;
     a.style.setProperty('--d', ((n % 3) * 0.09) + 's');
     a.innerHTML =
-      `<div class="card__media"><img src="${esc(A(p.cover))}"${RS(A(p.cover), '(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 33vw')} width="1200" height="800" alt=" loading="lazy" decoding="async"></div>` +
+      `<div class="card__media"><img src="${esc(A(p.cover))}"${RS(A(p.cover), '(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 33vw')} width="1200" height="800" alt="${esc(p.coverAlt || p.title)}" loading="lazy" decoding="async"></div>` +
       `<div class="card__info"><h3 class="card__title">${esc(p.title)}</h3>` +
-      `<p class="card__client">${esc(p.client)}</p>` +
-      `<span class="card__cat">${esc(p.category)} · ${esc(p.year)}</span></div>`;
+      `<p class="card__client">${esc(p.location || p.client || p.type || '')}</p>` +
+      `<span class="card__cat">${esc([p.category, p.year].filter(Boolean).join(' · '))}</span></div>`;
     return a;
   }
 
@@ -254,7 +256,7 @@
   function galleryHTML(p) {
     return p.gallery.map((g, i) =>
       `<button class="g" type="button" data-i="${i}" aria-label="Open image ${i + 1} of ${p.gallery.length}">` +
-      `<img src="${esc(A(g.src))}"${RS(A(g.src), '(max-width: 900px) 60vw, 45vw')} alt="${esc(g.alt || g.caption || '')}" loading="lazy" decoding="async">` +
+      `<img ${GS(g, '(max-width: 900px) 50vw, 45vw')} alt="${esc(g.alt || g.caption || '')}" loading="lazy" decoding="async">` +
       `<span class="g__n">${pad(i + 1)}</span></button>`
     ).join('');
   }
@@ -288,20 +290,21 @@
     const n = DATA.length;
     const next = DATA[(p.index + 1) % n], prev = DATA[(p.index - 1 + n) % n];
     const meta = [
-      ['Client', p.client], ['Year', p.year], ['Category', p.category],
+      ['Client', p.client], ['Location', p.location], ['Year', p.year], ['Category', p.category],
+      ['Project', p.type], ['Scope', p.scope], ['Style', p.style],
       ['Services', (p.services || []).join(', ')], ['Role', p.role]
     ].filter(m => m[1]);
     const hero = p.hero || p.cover;
     return `<article class="pj">
       <header class="pj__head">
-        <p class="pj__eyebrow"><span>Project ${pad(p.index + 1)} / ${pad(n)}</span><span>${esc(p.category)}</span><span>${esc(p.year)}</span></p>
+        <p class="pj__eyebrow"><span>Project ${pad(p.index + 1)} / ${pad(n)}</span><span>${esc(p.category)}</span>${p.year ? `<span>${esc(p.year)}</span>` : ''}</p>
         <h1 class="pj__title" aria-label="${esc(p.title)}">${splitChars(p.title)}</h1>
         <div class="pj__intro">
           <p class="pj__desc r" style="--d:.5s">${esc(p.description)}</p>
           <dl class="pj__meta r" style="--d:.65s">${meta.map(m => `<div><dt>${esc(m[0])}</dt><dd>${esc(m[1])}</dd></div>`).join('')}</dl>
         </div>
       </header>
-      <figure class="pj__main" data-par="1"><img src="${esc(A(hero))}"${RS(A(hero), '100vw')} alt="${esc(p.title)}" decoding="async" fetchpriority="high"></figure>
+      <figure class="pj__main" data-par="1"><img src="${esc(A(hero))}"${RS(A(hero), '100vw')} alt="${esc(p.coverAlt || p.title)}" decoding="async" fetchpriority="high"></figure>
       ${p.gallery.length ? `<section class="pj__gallery" aria-label="Gallery">
         <div class="pj__gallery-head r"><h2>Gallery</h2><span>${p.gallery.length} image${p.gallery.length === 1 ? '' : 's'}</span></div>
         <div class="pj__grid" id="pjGrid">${galleryHTML(p)}</div>
@@ -323,7 +326,8 @@
 
   function mountProject(p) {
     pv.innerHTML = projectHTML(p);
-    document.title = `${p.title} | Openrange`;
+    document.title = p.seoTitle || `${p.title} | PyraViz`;
+    if (metaDesc) metaDesc.setAttribute('content', p.seoDescription || p.description || SITE_DESC);
 
     // reveals for anything marked .r / .g / .story__img
     if (pvIO) pvIO.disconnect();
@@ -401,6 +405,7 @@
       pv.hidden = true; pv.innerHTML = ''; pvImgs = [];
       home.hidden = false;
       document.title = SITE_TITLE;
+      if (metaDesc) metaDesc.setAttribute('content', SITE_DESC);
       window.Site && window.Site.setView('home');
       window.Site && window.Site.remeasure();
       window.scrollTo(0, homeScroll);
