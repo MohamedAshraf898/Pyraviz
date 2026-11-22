@@ -278,10 +278,10 @@
       ${s.lead ? `<h2 class="story__lead" data-words>${esc(s.lead)}</h2>` : ''}
       <div class="story__grid">
         <span class="story__num" aria-hidden="true">${pad(p.index + 1)}</span>
-        ${imgs[0] ? `<figure class="story__img story__img--a" data-par="-1"><img src="${esc(A(imgs[0].src))}"${RS(A(imgs[0].src), '(max-width: 900px) 84vw, 42vw')} alt="${esc(imgs[0].alt || '')}" loading="lazy" decoding="async"></figure>` : ''}
+        ${imgs[0] ? `<figure class="story__img story__img--a"><img src="${esc(A(imgs[0].src))}"${RS(A(imgs[0].src), '(max-width: 900px) 84vw, 42vw')} alt="${esc(imgs[0].alt || '')}" loading="lazy" decoding="async"></figure>` : ''}
         ${badge}
         <div class="story__text r">${s.body.map(t => `<p>${esc(t)}</p>`).join('')}${credits}</div>
-        ${imgs[1] ? `<figure class="story__img story__img--b" data-par="1"><img src="${esc(A(imgs[1].src))}"${RS(A(imgs[1].src), '(max-width: 900px) 84vw, 42vw')} alt="${esc(imgs[1].alt || '')}" loading="lazy" decoding="async"></figure>` : ''}
+        ${imgs[1] ? `<figure class="story__img story__img--b"><img src="${esc(A(imgs[1].src))}"${RS(A(imgs[1].src), '(max-width: 900px) 84vw, 42vw')} alt="${esc(imgs[1].alt || '')}" loading="lazy" decoding="async"></figure>` : ''}
       </div>
     </section>`;
   }
@@ -304,7 +304,7 @@
           <dl class="pj__meta r" style="--d:.65s">${meta.map(m => `<div><dt>${esc(m[0])}</dt><dd>${esc(m[1])}</dd></div>`).join('')}</dl>
         </div>
       </header>
-      <figure class="pj__main" data-par="1"><img src="${esc(A(hero))}"${RS(A(hero), '100vw')} alt="${esc(p.coverAlt || p.title)}" decoding="async" fetchpriority="high"></figure>
+      <figure class="pj__main"><img src="${esc(A(hero))}"${RS(A(hero), '100vw')} alt="${esc(p.coverAlt || p.title)}" decoding="async" fetchpriority="high"></figure>
       ${p.gallery.length ? `<section class="pj__gallery" aria-label="Gallery">
         <div class="pj__gallery-head r"><h2>Gallery</h2><span>${p.gallery.length} image${p.gallery.length === 1 ? '' : 's'}</span></div>
         <div class="pj__grid" id="pjGrid">${galleryHTML(p)}</div>
