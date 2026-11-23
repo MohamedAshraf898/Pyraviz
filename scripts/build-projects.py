@@ -11,8 +11,8 @@ and the .webp files next to it, then writes:
 
 Also reads   Pyraviz website - notes for developer.xlsx   (in the project root, optional):
   sheet "Featured first"  projects listed there come first, in that order; the rest follow in sheet order
-  sheet "New covers"      the cropped photo in "Cover photos/" becomes the card cover, and the gallery image
-                          it names ("27 of 126") becomes the full-size picture at the top of the project page
+  sheet "New covers"      the original of the gallery image it names ("27 of 126") becomes the project cover
+                          (cards and the top of the project page); "Cover photos/" holds crops for reference only
 
 Only renders go in the galleries ("Process - ..." images are skipped).
 Images that already exist are not converted again, so re-running after adding a project is quick.
@@ -106,7 +106,16 @@ def job(args):
     kind, src, slug, n = args
     d = os.path.join(OUT, slug)
     if kind == 'cover':
-        return sum(resize_save(src, os.path.join(d, f'cover-{w}.webp'), width=w, q=Q_COVER, refresh=True) for w in COVER_W)
+        stamp = os.path.join(d, '.cover-source')
+        same = os.path.exists(stamp) and open(stamp, encoding='utf-8').read() == src
+        if not same:   # the cover now comes from another file: make it again
+            for w in COVER_W:
+                f = os.path.join(d, f'cover-{w}.webp')
+                if os.path.exists(f): os.remove(f)
+        made = sum(resize_save(src, os.path.join(d, f'cover-{w}.webp'), width=w, q=Q_COVER, refresh=True) for w in COVER_W)
+        os.makedirs(d, exist_ok=True)
+        with open(stamp, 'w', encoding='utf-8') as fh: fh.write(src)
+        return made
     return (resize_save(src, os.path.join(d, f'{n:02d}-s.webp'), long_side=THUMB, q=Q_THUMB) +
             resize_save(src, os.path.join(d, f'{n:02d}.webp'), long_side=FULL, q=Q_FULL))
 
@@ -148,26 +157,27 @@ def main():
         slug = p['URL slug'] or re.sub(r'[^a-z0-9]+', '-', p['Project name'].lower()).strip('-')
         cover = local(p['Cover image'])
         nc = new_covers.get(slugify(p['Project name'])) or new_covers.get(slug)
-        if nc and nc[2] and os.path.exists(os.path.join(COVERS, nc[2])): cover = os.path.join(COVERS, nc[2])
-        elif nc: missing.append(os.path.join(COVERS, nc[2]))
-        if not os.path.exists(cover): missing.append(cover); continue
-        jobs.append(('cover', cover, slug, 0))
-        gallery = []
+        gallery, sources, img_jobs = [], [], []
         for im in by_id.get(p['ID'], []):
             src = local(im['Web file'])
             if not os.path.exists(src): missing.append(src); continue
             n = len(gallery) + 1
-            jobs.append(('img', src, slug, n))
+            sources.append(src)
+            img_jobs.append(('img', src, slug, n))
             gallery.append({'src': f'assets/work/{slug}/{n:02d}.webp', 'thumb': f'assets/work/{slug}/{n:02d}-s.webp',
                             'caption': im['View / space'], 'alt': im['Alt text'], **size(src)})
-        loc = ', '.join(v for v in [p['City'], p['Country']] if v)
-        style = ', '.join(v for v in [p['Design style'], p['Design style 2 (optional)']] if v)
-        services = [s for s in [p['Service (page subtitle)']] if s]
-        hero = ''
+        # new cover from the notes sheet: the ORIGINAL of the gallery image it names (full resolution);
+        # the cropped photo in "Cover photos/" is only a reference
         if nc:
             if len(gallery) != nc[1]:
                 print(f'! {p["Project name"]}: notes say {nc[1]} images, the gallery has {len(gallery)}')
-            if 1 <= nc[0] <= len(gallery): hero = gallery[nc[0] - 1]['src']
+            if 1 <= nc[0] <= len(sources): cover = sources[nc[0] - 1]
+        if not os.path.exists(cover): missing.append(cover); continue
+        jobs.append(('cover', cover, slug, 0))
+        jobs.extend(img_jobs)
+        loc = ', '.join(v for v in [p['City'], p['Country']] if v)
+        style = ', '.join(v for v in [p['Design style'], p['Design style 2 (optional)']] if v)
+        services = [s for s in [p['Service (page subtitle)']] if s]
         out.append({
             'slug': slug,
             'title': p['Project name'],
@@ -181,7 +191,6 @@ def main():
             'spaces': p['Spaces / rooms shown'] if p['Spaces / rooms shown'] not in ('', '-') else '',
             'services': services,
             'cover': f'assets/work/{slug}/cover-1200.webp',
-            **({'hero': hero} if hero else {}),
             'coverAlt': p['Cover alt text'],
             'description': p['Short description'],
             'seoTitle': p['Page title'],
@@ -196,6 +205,8 @@ def main():
         for k in featured:
             if not any(key(p) == rank[k] for p in out): print(f'! featured project not found: {k}')
         out.sort(key=key)   # stable: the rest keep their order
+        for p in out:   # work.js keeps these first under "All" and shuffles the rest on every visit
+            if key(p) < len(rank): p['featured'] = True
 
     if missing:
         print(f'! {len(missing)} files listed in the sheet were not found, e.g.:', *missing[:5], sep='\n  ')

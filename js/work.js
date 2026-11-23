@@ -77,8 +77,12 @@
   const countEl = $('#workCount');
   const openCat = $('#openCat');
 
+  // "All": the featured projects first (in sheet order), then everything else in a new random order on every visit
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const ALL = [...DATA.filter(p => p.featured), ...shuffle(DATA.filter(p => !p.featured))];
+
   let filter = 'All';
-  let list = DATA;
+  let list = ALL;
   let shown = 0;
 
   const cardIO = new IntersectionObserver(es => {
@@ -137,7 +141,7 @@
     $$('.chip', filtersEl).forEach(c => c.setAttribute('aria-selected', String(c.dataset.cat === cat)));
     grid.classList.add('is-swap');
     await wait(reduce ? 0 : 320);
-    list = cat === 'All' ? DATA : DATA.filter(p => p.category === cat);
+    list = cat === 'All' ? ALL : DATA.filter(p => p.category === cat);
     updateOpenCat();
     grid.innerHTML = '';
     shown = 0;

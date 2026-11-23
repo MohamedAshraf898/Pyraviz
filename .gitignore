@@ -7,3 +7,6 @@ Pyraviz Website Images/
 # build inputs from the client (read by scripts/build-projects.py), kept local like the renders above
 Cover photos/
 Pyraviz website - notes for developer.xlsx
+
+# build-projects.py notes which file each cover was made from (local paths)
+.cover-source
