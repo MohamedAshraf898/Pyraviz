@@ -3,3 +3,7 @@ node_modules/
 
 # original renders + spreadsheet (2.8 GB): source for scripts/build-projects.py, kept local
 Pyraviz Website Images/
+
+# build inputs from the client (read by scripts/build-projects.py), kept local like the renders above
+Cover photos/
+Pyraviz website - notes for developer.xlsx

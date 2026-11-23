@@ -11,10 +11,19 @@
              Portrait crop (4:5), about 600 x 750 px, .jpg or .webp.
              Without a photo the tile shows the person's initials.
 
+   FOUNDERS (shown first, large, at the top of the Team section)
+     same fields, plus
+     bio     (optional) one or two short sentences
+
    The names and roles below are PLACEHOLDERS: replace them with your own.
    ========================================================================== */
+window.FOUNDERS = [
+  { name: 'Omar Fathy', role: 'Co-Founder & Creative Director', bio: 'Sets the visual direction of every project, from first sketch to final frame.' },
+  { name: 'Founder Two', role: 'Co-Founder & Managing Director', bio: 'Runs the studio and keeps every project on time, on brief and on budget.' },
+  { name: 'Founder Three', role: 'Co-Founder & Technical Director', bio: 'Leads the 3D pipeline, lighting and rendering standards across the team.' }
+];
+
 window.TEAM = [
-  { name: 'Omar Fathy', role: 'Founder & Creative Director' },
   { name: 'Salma Adel', role: 'Executive Producer' },
   { name: 'Karim Nabil', role: 'Head of Art Direction' },
   { name: 'Laila Ashraf', role: 'Design Director' },

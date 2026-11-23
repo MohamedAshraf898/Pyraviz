@@ -9,6 +9,11 @@ and the .webp files next to it, then writes:
   assets/work/<slug>/NN.webp                           full image for the viewer (1400px long side)
   js/projects.js                                       window.PROJECTS, read by js/work.js
 
+Also reads   Pyraviz website - notes for developer.xlsx   (in the project root, optional):
+  sheet "Featured first"  projects listed there come first, in that order; the rest follow in sheet order
+  sheet "New covers"      the cropped photo in "Cover photos/" becomes the card cover, and the gallery image
+                          it names ("27 of 126") becomes the full-size picture at the top of the project page
+
 Only renders go in the galleries ("Process - ..." images are skipped).
 Images that already exist are not converted again, so re-running after adding a project is quick.
 
@@ -22,16 +27,25 @@ from concurrent.futures import ProcessPoolExecutor
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LIB = os.path.join(ROOT, 'Pyraviz Website Images')
 XLSX = os.path.join(LIB, 'Pyraviz Website - Projects and SEO.xlsx')
+NOTES = os.path.join(ROOT, 'Pyraviz website - notes for developer.xlsx')
+COVERS = os.path.join(ROOT, 'Cover photos')
 OUT = os.path.join(ROOT, 'assets', 'work')
 COVER_W = [480, 800, 1200, 1800]
 THUMB, FULL = 640, 1400
 Q_COVER, Q_THUMB, Q_FULL = 74, 72, 72
 
+# category changes made on the site, applied on top of the sheet (project slug -> category)
+CATEGORY_OVERRIDES = {
+    'junior-barbershop': 'Commercial & Entertainment',
+    'muse-salon': 'Commercial & Entertainment',
+    'gaming-center': 'Commercial & Entertainment',
+}
+
 # ---------- xlsx (no openpyxl needed) ----------
 NS = {'m': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
 T = '{%s}t' % NS['m']
 
-def read_xlsx(path):
+def read_xlsx(path, find_header=False):
     z = zipfile.ZipFile(path)
     ss = [''.join(t.text or '' for t in si.iter(T))
           for si in ET.fromstring(z.read('xl/sharedStrings.xml')).findall('m:si', NS)] if 'xl/sharedStrings.xml' in z.namelist() else []
@@ -57,8 +71,9 @@ def read_xlsx(path):
                 else: val = ss[int(v.text)] if ty == 's' else v.text
                 row[col(c.get('r'))] = val.strip()
             if row: rows.append([row.get(i, '') for i in range(max(row) + 1)])
-        head = rows[0]
-        sheets[s.get('name')] = [dict(zip(head, r + [''] * (len(head) - len(r)))) for r in rows[1:]]
+        h = next((i for i, r in enumerate(rows) if r and r[0] == '#'), 0) if find_header else 0
+        head = rows[h]
+        sheets[s.get('name')] = [dict(zip(head, r + [''] * (len(head) - len(r)))) for r in rows[h + 1:]]
     return sheets
 
 def local(p):
@@ -73,8 +88,8 @@ def num(v):
     except (TypeError, ValueError): return ''
 
 # ---------- images ----------
-def resize_save(src, dst, long_side=None, width=None, q=72):
-    if os.path.exists(dst): return 0
+def resize_save(src, dst, long_side=None, width=None, q=72, refresh=False):
+    if os.path.exists(dst) and not (refresh and os.path.getmtime(src) > os.path.getmtime(dst)): return 0
     from PIL import Image
     im = Image.open(src)
     im = im.convert('RGB')
@@ -91,9 +106,31 @@ def job(args):
     kind, src, slug, n = args
     d = os.path.join(OUT, slug)
     if kind == 'cover':
-        return sum(resize_save(src, os.path.join(d, f'cover-{w}.webp'), width=w, q=Q_COVER) for w in COVER_W)
+        return sum(resize_save(src, os.path.join(d, f'cover-{w}.webp'), width=w, q=Q_COVER, refresh=True) for w in COVER_W)
     return (resize_save(src, os.path.join(d, f'{n:02d}-s.webp'), long_side=THUMB, q=Q_THUMB) +
             resize_save(src, os.path.join(d, f'{n:02d}.webp'), long_side=FULL, q=Q_FULL))
+
+def size(src):
+    # pixel size of the source (header read only); lets the page reserve each image's space before it loads
+    from PIL import Image
+    with Image.open(src) as im: w, h = im.size
+    return {'w': w, 'h': h}
+
+def slugify(t):
+    return re.sub(r'[^a-z0-9]+', '-', str(t).lower().replace('&', 'and')).strip('-')
+
+def read_notes():
+    # -> (featured: [name keys in order], covers: {name key: (gallery number, gallery total, reference file)})
+    if not os.path.exists(NOTES): return [], {}
+    n = read_xlsx(NOTES, find_header=True)
+    featured = [slugify(r['Project name (as on the website)']) for r in n.get('Featured first', [])
+                if r.get('Project name (as on the website)')]
+    covers = {}
+    for r in n.get('New covers', []):
+        m = re.match(r'\s*(\d+)\s*of\s*(\d+)', r.get('Use website image', ''))
+        if r.get('Project name') and m:
+            covers[slugify(r['Project name'])] = (int(m.group(1)), int(m.group(2)), r.get('Reference photo', ''))
+    return featured, covers
 
 # ---------- main ----------
 def main():
@@ -105,10 +142,14 @@ def main():
         if im['Image type'] != 'Render': continue
         by_id.setdefault(im['ID'], []).append(im)
 
+    featured, new_covers = read_notes()
     jobs, out, missing = [], [], []
     for p in projects:
         slug = p['URL slug'] or re.sub(r'[^a-z0-9]+', '-', p['Project name'].lower()).strip('-')
         cover = local(p['Cover image'])
+        nc = new_covers.get(slugify(p['Project name'])) or new_covers.get(slug)
+        if nc and nc[2] and os.path.exists(os.path.join(COVERS, nc[2])): cover = os.path.join(COVERS, nc[2])
+        elif nc: missing.append(os.path.join(COVERS, nc[2]))
         if not os.path.exists(cover): missing.append(cover); continue
         jobs.append(('cover', cover, slug, 0))
         gallery = []
@@ -118,16 +159,21 @@ def main():
             n = len(gallery) + 1
             jobs.append(('img', src, slug, n))
             gallery.append({'src': f'assets/work/{slug}/{n:02d}.webp', 'thumb': f'assets/work/{slug}/{n:02d}-s.webp',
-                            'caption': im['View / space'], 'alt': im['Alt text']})
+                            'caption': im['View / space'], 'alt': im['Alt text'], **size(src)})
         loc = ', '.join(v for v in [p['City'], p['Country']] if v)
         style = ', '.join(v for v in [p['Design style'], p['Design style 2 (optional)']] if v)
         services = [s for s in [p['Service (page subtitle)']] if s]
+        hero = ''
+        if nc:
+            if len(gallery) != nc[1]:
+                print(f'! {p["Project name"]}: notes say {nc[1]} images, the gallery has {len(gallery)}')
+            if 1 <= nc[0] <= len(gallery): hero = gallery[nc[0] - 1]['src']
         out.append({
             'slug': slug,
             'title': p['Project name'],
             'client': p['Client'],
             'year': num(p['Year']),
-            'category': clean_cat(p['Category']),
+            'category': CATEGORY_OVERRIDES.get(slug, clean_cat(p['Category'])),
             'type': p['Project type'],
             'location': loc,
             'scope': p['Scope'],
@@ -135,12 +181,21 @@ def main():
             'spaces': p['Spaces / rooms shown'] if p['Spaces / rooms shown'] not in ('', '-') else '',
             'services': services,
             'cover': f'assets/work/{slug}/cover-1200.webp',
+            **({'hero': hero} if hero else {}),
             'coverAlt': p['Cover alt text'],
             'description': p['Short description'],
             'seoTitle': p['Page title'],
             'seoDescription': p['Meta description'],
             'gallery': gallery,
         })
+
+    # featured projects first (notes sheet order), then everything else in sheet order
+    if featured:
+        rank = {k: i for i, k in enumerate(featured)}
+        key = lambda p: rank.get(slugify(p['title']), rank.get(p['slug'], len(rank)))
+        for k in featured:
+            if not any(key(p) == rank[k] for p in out): print(f'! featured project not found: {k}')
+        out.sort(key=key)   # stable: the rest keep their order
 
     if missing:
         print(f'! {len(missing)} files listed in the sheet were not found, e.g.:', *missing[:5], sep='\n  ')

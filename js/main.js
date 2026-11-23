@@ -129,7 +129,8 @@
     function merge() {
       const l = $('.loader__word--l').getBoundingClientRect();
       const r = $('.loader__word--r').getBoundingClientRect();
-      const gap = r.left - l.right;
+      // the logo halves (PYRA / VIZ) overlap where the A and V slant into each other: 48px of the logo's 249px height
+      const gap = r.left - l.right + l.height * 48 / 249;
       loader.style.setProperty('--merge-l', (gap / 2) + 'px');
       loader.style.setProperty('--merge-r', (-gap / 2) + 'px');
       loader.classList.add('is-merge');
@@ -620,6 +621,33 @@
   const teamVis = new Set();
   const escH = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  // founders: three large portraits at the top of the Team section (window.FOUNDERS in js/team.js)
+  const foundersBox = $('#founders');
+  const FOUNDERS = window.FOUNDERS || [];
+  if (foundersBox) {
+    if (!FOUNDERS.length) foundersBox.remove();
+    else {
+      const ini = name => String(name).trim().split(/\s+/).filter(Boolean).map(w => w[0]).filter((c, i, a) => i === 0 || i === a.length - 1).join('').toUpperCase();
+      foundersBox.innerHTML =
+        `<p class="founders__label">Founders <span>(${String(FOUNDERS.length).padStart(2, '0')})</span></p>` +
+        `<div class="founders__grid">` + FOUNDERS.map((m, i) =>
+          `<article class="fd" role="listitem" style="--i:${i}">` +
+          `<div class="fd__img">` +
+          (m.photo
+            ? `<img src="${escH(m.photo)}" width="600" height="750" alt="${escH(m.name)}" loading="lazy" decoding="async">`
+            : `<span class="fd__ini" aria-hidden="true">${escH(ini(m.name))}</span>`) +
+          `<span class="fd__no" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span></div>` +
+          `<h3 class="fd__name">${escH(m.name)}</h3>` +
+          `<p class="fd__role">${escH(m.role)}</p>` +
+          (m.bio ? `<p class="fd__bio">${escH(m.bio)}</p>` : '') +
+          `</article>`).join('') + `</div>`;
+      const fdIO = new IntersectionObserver(es => {
+        for (const e of es) if (e.isIntersecting) { e.target.classList.add('in'); fdIO.unobserve(e.target); }
+      }, { threshold: .15 });
+      fdIO.observe(foundersBox);
+    }
+  }
+
   if (teamBox && TEAM.length) {
     const ROWS = 3;
     const pad2 = n => String(n).padStart(2, '0');
@@ -754,7 +782,6 @@
   // Contact overlay: #contact-form is a direct, shareable link as well as an in-site overlay.
   const contactModal = $('#contactForm');
   const contactForm = $('#contactEnquiryForm');
-  const contactWhatsapp = $('#contactWhatsapp');
   const contactEndpoint = 'https://script.google.com/macros/s/AKfycbyc63NkbrXLeJkI9V4efDMiUa8Ts13OFblmdjnouFitOnmC3KBRaOB5fKMNUhLuYNg/exec';
   let contactFocus = null;
   function setContact(open, updateHash = true) {
@@ -778,29 +805,38 @@
   window.addEventListener('hashchange', () => setContact(location.hash === '#contact-form', false));
   if (location.hash === '#contact-form') setContact(true, false);
   window.addEventListener('keydown', e => { if (e.key === 'Escape' && contactModal?.classList.contains('is-open')) { e.stopPropagation(); setContact(false); } }, true);
-  contactForm?.addEventListener('submit', e => {
-    e.preventDefault();
-    if (!contactForm.reportValidity()) return;
-    const submit = contactForm.querySelector('.contact-form__submit');
-    const services = [...contactForm.querySelectorAll('input[name="services"]:checked')].map(input => input.value);
-    const payload = new URLSearchParams({
-      name: contactForm.elements.name.value.trim(),
-      phone: contactForm.elements.phone.value.trim(),
-      services: services.join(', ')
+  // Every enquiry form ([data-enquiry]: the overlay and the footer) sends the same way, to the same sheet.
+  const checkedServices = form => [...form.querySelectorAll('input[name="services"]:checked')].map(input => input.value);
+  $$('form[data-enquiry]').forEach(form => {
+    const success = form.querySelector('.contact-form__success');
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+      const submit = form.querySelector('.contact-form__submit');
+      const payload = new URLSearchParams({
+        name: form.elements.name.value.trim(),
+        phone: form.elements.phone.value.trim(),
+        services: checkedServices(form).join(', ')
+      });
+      submit.disabled = true;
+      // Send without waiting for Apps Script's redirecting response.
+      fetch(contactEndpoint, { method: 'POST', mode: 'no-cors', body: payload })
+        .catch(() => {})
+        .finally(() => { submit.disabled = false; });
+      form.reset();
+      if (form.hasAttribute('data-enquiry-close')) setContact(false);   // the overlay closes
+      else if (success) {                                                // the footer form says thanks
+        success.hidden = false;
+        clearTimeout(form._t); form._t = setTimeout(() => { success.hidden = true; }, 6000);
+      }
     });
-    submit.disabled = true;
-    // Send without waiting for Apps Script's redirecting response, then close immediately.
-    fetch(contactEndpoint, { method: 'POST', mode: 'no-cors', body: payload })
-      .catch(() => {})
-      .finally(() => { submit.disabled = false; });
-    contactForm.reset();
-    setContact(false);
-  });
-  contactWhatsapp?.addEventListener('click', () => {
-    const name = contactForm?.elements.name?.value.trim();
-    const services = [...(contactForm?.querySelectorAll('input[name="services"]:checked') || [])].map(input => input.value);
-    const message = `Hello PyraViz${name ? `, I'm ${name}` : ''}. I'm interested in ${services.length ? services.join(', ') : 'your services'}.`;
-    contactWhatsapp.href = `https://wa.me/201112880001?text=${encodeURIComponent(message)}`;
+    const wa = form.querySelector('[data-enquiry-wa]');
+    wa?.addEventListener('click', () => {
+      const name = form.elements.name?.value.trim();
+      const services = checkedServices(form);
+      const message = `Hello PyraViz${name ? `, I'm ${name}` : ''}. I'm interested in ${services.length ? services.join(', ') : 'your services'}.`;
+      wa.href = `https://wa.me/201112880001?text=${encodeURIComponent(message)}`;
+    });
   });
 
   function goTo(hash) {

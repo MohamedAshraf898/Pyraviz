@@ -4,7 +4,8 @@
      · the home grid   (filters + "load more" + cursor label)
      · the project page (title, main picture, gallery + lightbox,
                          story section, next / previous)
-     · a tiny hash router  (#/  ->  home,   #/work/<slug>  ->  project)
+     · a category page (all projects of one category)
+     · a tiny hash router  (#/  ->  home,   #/work/<slug>  ->  project,   #/category/<slug>  ->  category)
        with a curtain page-transition
    ========================================================== */
 (() => {
@@ -58,6 +59,10 @@
     });
   });
   const bySlug = s => DATA.find(p => p.slug === s);
+  const CATS = [];
+  DATA.forEach(p => { if (p.category && !CATS.includes(p.category)) CATS.push(p.category); });
+  const catHref = c => `#/category/${slugify(c)}`;
+  const catBySlug = s => CATS.find(c => slugify(c) === s);
   if (!DATA.length) console.warn('[work.js] window.PROJECTS is empty – add projects in js/projects.js');
 
   /* ==========================================================
@@ -70,6 +75,7 @@
   const barEl = $('#workBar');
   const filtersEl = $('#workFilters');
   const countEl = $('#workCount');
+  const openCat = $('#openCat');
 
   let filter = 'All';
   let list = DATA;
@@ -114,9 +120,7 @@
   }
 
   function buildFilters() {
-    const cats = [];
-    DATA.forEach(p => { if (p.category && !cats.includes(p.category)) cats.push(p.category); });
-    const all = ['All', ...cats];
+    const all = ['All', ...CATS];
     filtersEl.innerHTML = all.map(c => {
       const n = c === 'All' ? DATA.length : DATA.filter(p => p.category === c).length;
       return `<button class="chip" type="button" role="tab" data-cat="${esc(c)}" aria-selected="${c === filter}">${esc(c)}<sup>${n}</sup></button>`;
@@ -134,13 +138,38 @@
     grid.classList.add('is-swap');
     await wait(reduce ? 0 : 320);
     list = cat === 'All' ? DATA : DATA.filter(p => p.category === cat);
+    updateOpenCat();
     grid.innerHTML = '';
     shown = 0;
     renderMore();
     // keep the grid in view after the swap
-    const top = grid.getBoundingClientRect().top;
-    if (top < 80) window.scrollTo({ top: grid.getBoundingClientRect().top + scrollY - 140, behavior: 'auto' });
+    // (the tab row is sticky, so the grid has to start below it)
+    const below = filtersEl.getBoundingClientRect().bottom;
+    if (grid.getBoundingClientRect().top < below) window.scrollTo({ top: grid.getBoundingClientRect().top + scrollY - below - 20, behavior: 'auto' });
     grid.classList.remove('is-swap');
+  }
+
+  // "Open <category>" under the grid, shown while one category is selected
+  function updateOpenCat() {
+    if (!openCat) return;
+    openCat.hidden = filter === 'All';
+    if (filter === 'All') return;
+    openCat.href = catHref(filter);
+    openCat.innerHTML = `Open ${esc(filter)} <span aria-hidden="true">&rarr;</span>`;
+  }
+
+  // hide the top-bar logo while the tab row is stuck (it sits right under the logo)
+  if (filtersEl) {
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      const stuck = !home.hidden && Math.abs(filtersEl.getBoundingClientRect().top - parseFloat(getComputedStyle(filtersEl).top)) < 1.5;
+      body.classList.toggle('tabs-stuck', stuck);
+    };
+    const kick = () => { if (!raf) raf = requestAnimationFrame(check); };
+    window.addEventListener('scroll', kick, { passive: true });
+    window.addEventListener('resize', kick);
+    window.addEventListener('hashchange', kick);
   }
 
   if (grid) {
@@ -218,7 +247,13 @@
     $('#lbClose').addEventListener('click', lbClose);
     $('#lbPrev').addEventListener('click', () => lbShow(lbState.i - 1));
     $('#lbNext').addEventListener('click', () => lbShow(lbState.i + 1));
-    $('#lbStage').addEventListener('click', e => { if (e.target.id === 'lbStage') lbClose(); });
+    // a click anywhere closes the viewer, except on the previous / next arrows or right after a swipe
+    let swipedAt = 0;
+    lb.addEventListener('click', e => {
+      if (performance.now() - swipedAt < 400) return;
+      if (e.target.closest('.lb__nav')) return;
+      lbClose();
+    });
     window.addEventListener('keydown', e => {
       if (!lb.classList.contains('open')) return;
       if (e.key === 'Escape') { e.stopPropagation(); lbClose(); }
@@ -232,7 +267,10 @@
     window.addEventListener('pointerup', e => {
       if (sx == null) return;
       const dx = e.clientX - sx; sx = null;
-      if (Math.abs(dx) > 55 && lb.classList.contains('open')) lbShow(lbState.i + (dx < 0 ? 1 : -1));
+      if (Math.abs(dx) > 55 && lb.classList.contains('open')) {
+        swipedAt = performance.now();
+        lbShow(lbState.i + (dx < 0 ? 1 : -1));
+      }
     });
   }
 
@@ -253,12 +291,32 @@
     ).join(' ');
   }
 
+  // gallery photos grouped by their tag (the caption shown in the viewer), in first-appearance order
+  function galleryGroups(p) {
+    const m = new Map();
+    p.gallery.forEach(g => {
+      const k = g.caption || 'Gallery';
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(g);
+    });
+    let i = 0;
+    return [...m].map(([tag, items]) => ({ tag, items: items.map(g => ({ g, i: i++ })) }));
+  }
+
   function galleryHTML(p) {
-    return p.gallery.map((g, i) =>
-      `<button class="g" type="button" data-i="${i}" aria-label="Open image ${i + 1} of ${p.gallery.length}">` +
-      `<img ${GS(g, '(max-width: 900px) 50vw, 45vw')} alt="${esc(g.alt || g.caption || '')}" loading="lazy" decoding="async">` +
-      `<span class="g__n">${pad(i + 1)}</span></button>`
-    ).join('');
+    const groups = galleryGroups(p);
+    const n = p.gallery.length;
+    const tile = ({ g, i }) =>
+      `<button class="g" type="button" data-i="${i}" aria-label="Open image ${i + 1} of ${n}${g.caption ? `: ${esc(g.caption)}` : ''}">` +
+      `<img ${GS(g, '(max-width: 900px) 50vw, 33vw')}${g.w ? ` width="${g.w}" height="${g.h}"` : ''} alt="${esc(g.alt || g.caption || '')}" decoding="async">` +
+      `<span class="g__n">${pad(i + 1)}</span></button>`;
+    if (groups.length < 2) return `<div class="pj__grid">${groups.map(gr => gr.items.map(tile).join('')).join('')}</div>`;
+    const chip = (label, count, sel) =>
+      `<button class="chip" type="button" role="tab" data-tag="${esc(label)}" aria-selected="${sel}">${esc(label)}<sup>${count}</sup></button>`;
+    return `<div class="pj__tags" role="tablist" aria-label="Filter photos">${chip('All', n, true)}${groups.map(gr => chip(gr.tag, gr.items.length, false)).join('')}</div>` +
+      groups.map((gr, k) => `<section class="pj__group" data-tag="${esc(gr.tag)}" aria-label="${esc(gr.tag)}">
+        <header class="pj__group-head r"><span class="pj__group-n">${pad(k + 1)}</span><h3>${esc(gr.tag)}</h3><span class="pj__group-c">${gr.items.length} photo${gr.items.length === 1 ? '' : 's'}</span></header>
+        <div class="pj__grid">${gr.items.map(tile).join('')}</div></section>`).join('');
   }
 
   function storyHTML(p) {
@@ -278,10 +336,10 @@
       ${s.lead ? `<h2 class="story__lead" data-words>${esc(s.lead)}</h2>` : ''}
       <div class="story__grid">
         <span class="story__num" aria-hidden="true">${pad(p.index + 1)}</span>
-        ${imgs[0] ? `<figure class="story__img story__img--a"><img src="${esc(A(imgs[0].src))}"${RS(A(imgs[0].src), '(max-width: 900px) 84vw, 42vw')} alt="${esc(imgs[0].alt || '')}" loading="lazy" decoding="async"></figure>` : ''}
+        ${imgs[0] ? `<figure class="story__img story__img--a"><img src="${esc(A(imgs[0].src))}"${RS(A(imgs[0].src), '(max-width: 900px) 84vw, 42vw')} alt="${esc(imgs[0].alt || '')}" decoding="async"></figure>` : ''}
         ${badge}
         <div class="story__text r">${s.body.map(t => `<p>${esc(t)}</p>`).join('')}${credits}</div>
-        ${imgs[1] ? `<figure class="story__img story__img--b"><img src="${esc(A(imgs[1].src))}"${RS(A(imgs[1].src), '(max-width: 900px) 84vw, 42vw')} alt="${esc(imgs[1].alt || '')}" loading="lazy" decoding="async"></figure>` : ''}
+        ${imgs[1] ? `<figure class="story__img story__img--b"><img src="${esc(A(imgs[1].src))}"${RS(A(imgs[1].src), '(max-width: 900px) 84vw, 42vw')} alt="${esc(imgs[1].alt || '')}" decoding="async"></figure>` : ''}
       </div>
     </section>`;
   }
@@ -297,7 +355,7 @@
     const hero = p.hero || p.cover;
     return `<article class="pj">
       <header class="pj__head">
-        <p class="pj__eyebrow"><span>Project ${pad(p.index + 1)} / ${pad(n)}</span><span>${esc(p.category)}</span>${p.year ? `<span>${esc(p.year)}</span>` : ''}</p>
+        <p class="pj__eyebrow"><span>Project ${pad(p.index + 1)} / ${pad(n)}</span><a class="pj__cat" href="${catHref(p.category)}">${esc(p.category)}</a>${p.year ? `<span>${esc(p.year)}</span>` : ''}</p>
         <h1 class="pj__title" aria-label="${esc(p.title)}">${splitChars(p.title)}</h1>
         <div class="pj__intro">
           <p class="pj__desc r" style="--d:.5s">${esc(p.description)}</p>
@@ -307,7 +365,7 @@
       <figure class="pj__main"><img src="${esc(A(hero))}"${RS(A(hero), '100vw')} alt="${esc(p.coverAlt || p.title)}" decoding="async" fetchpriority="high"></figure>
       ${p.gallery.length ? `<section class="pj__gallery" aria-label="Gallery">
         <div class="pj__gallery-head r"><h2>Gallery</h2><span>${p.gallery.length} image${p.gallery.length === 1 ? '' : 's'}</span></div>
-        <div class="pj__grid" id="pjGrid">${galleryHTML(p)}</div>
+        <div class="pj__gal" id="pjGrid">${galleryHTML(p)}</div>
       </section>` : ''}
       ${storyHTML(p)}
       <section class="pj__next" aria-label="Next project">
@@ -322,6 +380,78 @@
         </div>
       </section>
     </article>`;
+  }
+
+  /* ---------- category page ---------- */
+  // location filter key / label: sheet spellings differ in case ("doha, kuwait"), so match case-insensitively
+  const locKey = p => String(p.location || '').trim().toLowerCase();
+  const locLabel = s => (s === s.toLowerCase() ? s.replace(/\b\w/g, c => c.toUpperCase()) : s);
+  function catLocations(items) {
+    const m = new Map();
+    items.forEach(p => {
+      const k = locKey(p);
+      if (!k) return;
+      if (!m.has(k)) m.set(k, { key: k, label: locLabel(String(p.location).trim()), n: 0 });
+      m.get(k).n++;
+    });
+    return [...m.values()].sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
+  }
+
+  function categoryHTML(cat) {
+    const items = DATA.filter(p => p.category === cat);
+    const k = CATS.indexOf(cat);
+    const others = CATS.filter(c => c !== cat);
+    const locs = catLocations(items);
+    const chip = (key, label, n, sel) =>
+      `<button class="chip" type="button" role="tab" data-loc="${esc(key)}" aria-selected="${sel}">${esc(label)}<sup>${n}</sup></button>`;
+    const filters = locs.length > 1
+      ? `<div class="cat__filters r" role="tablist" aria-label="Filter by location"><span class="cat__filters-label">Location</span>${chip('', 'All', items.length, true)}${locs.map(l => chip(l.key, l.label, l.n, false)).join('')}</div>`
+      : '';
+    return `<article class="pj cat">
+      <header class="pj__head">
+        <p class="pj__eyebrow"><span>Category ${pad(k + 1)} / ${pad(CATS.length)}</span><span>${items.length} project${items.length === 1 ? '' : 's'}</span></p>
+        <h1 class="pj__title" aria-label="${esc(cat)}">${splitChars(cat)}</h1>
+      </header>
+      <section class="cat__body" aria-label="${esc(cat)} projects">
+        ${filters}
+        <div class="work__grid cat__grid"></div>
+      </section>
+      <section class="cat__more" aria-label="Other categories">
+        <p class="cat__more-label r">More categories</p>
+        <div class="cat__links r">${others.map(c => `<a class="chip" href="${catHref(c)}">${esc(c)}<sup>${DATA.filter(p => p.category === c).length}</sup></a>`).join('')}</div>
+        <div class="pj__pn"><a href="#work">&larr; All work</a></div>
+      </section>
+    </article>`;
+  }
+
+  function mountCategory(cat) {
+    pv.innerHTML = categoryHTML(cat);
+    document.title = `${cat} | PyraViz`;
+    if (metaDesc) metaDesc.setAttribute('content', `${cat} projects by PyraViz.`);
+    const g = $('.cat__grid', pv);
+    const items = DATA.filter(p => p.category === cat);
+    const fill = loc => {
+      g.innerHTML = '';
+      items.filter(p => !loc || locKey(p) === loc).forEach((p, i) => g.appendChild(makeCard(p, i)));
+      $$('.card', g).forEach(c => cardIO.observe(c));
+    };
+    fill('');
+    const fl = $('.cat__filters', pv);
+    if (fl) fl.addEventListener('click', async e => {
+      const b = e.target.closest('.chip');
+      if (!b || b.getAttribute('aria-selected') === 'true') return;
+      $$('.chip', fl).forEach(c => c.setAttribute('aria-selected', String(c === b)));
+      g.classList.add('is-swap');
+      await wait(reduce ? 0 : 320);
+      fill(b.dataset.loc);
+      g.classList.remove('is-swap');
+    });
+    if (pvIO) pvIO.disconnect();
+    pvIO = new IntersectionObserver(es => {
+      for (const e of es) if (e.isIntersecting) { e.target.classList.add('in'); pvIO.unobserve(e.target); }
+    }, { threshold: .12, rootMargin: '0px 0px -6% 0px' });
+    $$('.r', pv).forEach(el => pvIO.observe(el));
+    pvImgs = [];
   }
 
   function mountProject(p) {
@@ -344,10 +474,23 @@
 
     // gallery -> lightbox
     const g = $('#pjGrid', pv);
-    if (g) g.addEventListener('click', e => {
-      const b = e.target.closest('.g');
-      if (b) lbOpen(p.gallery, +b.dataset.i);
-    });
+    if (g) {
+      const order = galleryGroups(p).flatMap(gr => gr.items.map(x => x.g)); // same order as data-i
+      g.addEventListener('click', e => {
+        const chip = e.target.closest('.chip');
+        if (chip) {
+          const tag = chip.dataset.tag;
+          $$('.chip', g).forEach(c => c.setAttribute('aria-selected', c === chip));
+          $$('.pj__group', g).forEach(s => { s.hidden = tag !== 'All' && s.dataset.tag !== tag; });
+          return;
+        }
+        const b = e.target.closest('.g');
+        if (!b) return;
+        // the viewer steps through the photos currently shown (one tag, or all)
+        const shown = $$('.g', g).filter(x => !x.closest('[hidden]'));
+        lbOpen(shown.map(x => order[+x.dataset.i]), shown.indexOf(b));
+      });
+    }
 
     // story lead: scroll-scrubbed words
     const lead = $('.story__lead', pv);
@@ -387,14 +530,17 @@
 
   const parse = () => {
     const m = location.hash.match(/^#\/work\/([^/?#]+)/);
-    return m ? { name: 'project', slug: decodeURIComponent(m[1]) } : { name: 'home', slug: null };
+    if (m) return { name: 'project', slug: decodeURIComponent(m[1]) };
+    const c = location.hash.match(/^#\/category\/([^/?#]+)/);
+    if (c) return { name: 'category', slug: decodeURIComponent(c[1]) };
+    return { name: 'home', slug: null };
   };
   const same = (a, b) => a.name === b.name && a.slug === b.slug;
 
   function apply(r, p) {
-    if (r.name === 'project') {
+    if (r.name === 'project' || r.name === 'category') {
       if (current.name === 'home') homeScroll = window.scrollY;
-      mountProject(p);
+      if (r.name === 'project') mountProject(p); else mountCategory(p);
       home.hidden = true; pv.hidden = false; pvOn = true;
       pvUpdate();
       window.Site && window.Site.setView('project');
@@ -440,13 +586,13 @@
 
   async function route(initial) {
     const r = parse();
-    const p = r.name === 'project' ? bySlug(r.slug) : null;
-    if (r.name === 'project' && !p) { history.replaceState(null, '', location.pathname + location.search); return route(initial); }
+    const p = r.name === 'project' ? bySlug(r.slug) : r.name === 'category' ? catBySlug(r.slug) : null;
+    if (r.name !== 'home' && !p) { history.replaceState(null, '', location.pathname + location.search); return route(initial); }
     if (same(r, current) && !initial) return;
 
     if (initial) {
       apply(r, p);
-      if (r.name === 'project') {
+      if (r.name !== 'home') {
         if (body.classList.contains('is-ready')) setTimeout(reveal, 60);
         else document.addEventListener('site:ready', () => setTimeout(reveal, 250), { once: true });
       }
@@ -454,7 +600,7 @@
       apply(r, p); reveal();
     } else {
       busy = true;
-      await runCurtain(p ? p.title : 'All work', () => apply(r, p));
+      await runCurtain(p ? (p.title || p) : 'All work', () => apply(r, p));
       busy = false;
     }
     if (afterRoute) { const f = afterRoute; afterRoute = null; f(); }
