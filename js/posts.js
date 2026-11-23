@@ -12,7 +12,7 @@ window.POSTS = [
     title: 'Why small teams make braver brands',
     category: 'Branding',
     date: '2026-10-28',
-    read: 5,
+    read: 5, i,
     author: 'PyraViz Studio',
     img: 'badea-bank',
     excerpt: 'Fewer layers, faster calls, and work that still feels like someone made it.',
