@@ -25,7 +25,8 @@
 
   <!-- ============ FIXED CHROME ============ -->
   <header class="nav">
-    <a href="#top" class="nav__logo" aria-label="PyraViz home"><span class="nav__logo-img" aria-hidden="true"></span></a>
+    <a href="#top" class="nav__logo" aria-label="PyraViz home"><span class="nav__logo-img"
+        aria-hidden="true"></span></a>
     <button class="nav__toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false">
       <span></span><span></span>
     </button>
@@ -65,14 +66,14 @@
           <figure class="hero__card hc-a2" data-fly="-1,-1"><img src="assets/work/al-barkaa-rest/cover-480.webp"
               srcset="assets/work/al-barkaa-rest/cover-480.webp 480w, assets/work/al-barkaa-rest/cover-800.webp 800w"
               sizes="(max-width: 900px) 30vw, 16vw" alt="" decoding="async"></figure>
-          <figure class="hero__card hc-b2" data-fly="1,-1"><img src="assets/work/al-murjan-palace-eclectic-interior/cover-480.webp"
+          <figure class="hero__card hc-b2" data-fly="1,-1"><img
+              src="assets/work/al-murjan-palace-eclectic-interior/cover-480.webp"
               srcset="assets/work/al-murjan-palace-eclectic-interior/cover-480.webp 480w, assets/work/al-murjan-palace-eclectic-interior/cover-800.webp 800w"
               sizes="(max-width: 900px) 30vw, 16vw" alt="" decoding="async"></figure>
           <figure class="hero__card hc-b1" data-fly="1,-1"><img src="assets/work/qimm-tower/cover-480.webp"
               srcset="assets/work/qimm-tower/cover-480.webp 480w, assets/work/qimm-tower/cover-800.webp 800w"
               sizes="(max-width: 900px) 30vw, 16vw" alt="" decoding="async"></figure>
-          <figure class="hero__card hc-c" data-fly="-1,0"><img
-              src="assets/work/al-thaniya-tower/cover-480.webp"
+          <figure class="hero__card hc-c" data-fly="-1,0"><img src="assets/work/al-thaniya-tower/cover-480.webp"
               srcset="assets/work/al-thaniya-tower/cover-480.webp 480w, assets/work/al-thaniya-tower/cover-800.webp 800w"
               sizes="(max-width: 900px) 30vw, 16vw" alt="" decoding="async" loading="lazy"></figure>
           <figure class="hero__card hc-d" data-fly="-1,0"><img src="assets/work/abdullah-apartment/cover-480.webp"
@@ -81,7 +82,8 @@
           <figure class="hero__card hc-e" data-fly="1,0"><img src="assets/work/ivory-residence/cover-480.webp"
               srcset="assets/work/ivory-residence/cover-480.webp 480w, assets/work/ivory-residence/cover-800.webp 800w"
               sizes="(max-width: 900px) 30vw, 16vw" alt="" decoding="async" loading="lazy"></figure>
-          <figure class="hero__card hc-f" data-fly="1,0"><img src="assets/work/abdulkarim-duplex-villa-first-floor/cover-480.webp"
+          <figure class="hero__card hc-f" data-fly="1,0"><img
+              src="assets/work/abdulkarim-duplex-villa-first-floor/cover-480.webp"
               srcset="assets/work/abdulkarim-duplex-villa-first-floor/cover-480.webp 480w, assets/work/abdulkarim-duplex-villa-first-floor/cover-800.webp 800w"
               sizes="(max-width: 900px) 30vw, 16vw" alt="" decoding="async" loading="lazy"></figure>
           <figure class="hero__card hc-g1" data-fly="-1,1"><img src="assets/work/trade-tower/cover-480.webp"
@@ -98,7 +100,8 @@
             <p class="hero__kicker">Visual impact</p>
             <h1 class="hero__title">Change how people see your project before it&rsquo;s built.</h1>
             <p class="hero__sub">PYRAVIZ creates images, animations, and VR experiences that help developers and
-              designers show what makes a project distinct, from the way spaces feel to the details that define them.</p>
+              designers show what makes a project distinct, from the way spaces feel to the details that define them.
+            </p>
           </div>
 
           <!-- the featured card: starts as a small tile, grows to full-bleed -->
@@ -111,15 +114,15 @@
               <script>
                 (function () {
                   // [project folder, width / height of its cover]; add or remove wide covers here
-                  var L = [['mada',1.7493],['lake-bishoftu-resort',1.4925],['colline-residence',1.6000],['al-murjan-palace',1.5203],
-                    ['bousher-compound',1.5000],['al-murjan-palace-english-interior',1.3997],['mr-abdulrahman-apartment',1.3168],
-                    ['al-nada-residence-apartment-03',1.4815],['olyx-residence-apartment-02',1.4229],['haraj-al-swarikh',1.3997],
-                    ['al-jawhra-mall',1.7769],['mozzat-food-services',1.7159]];
+                  var L = [['mada', 1.7493], ['lake-bishoftu-resort', 1.4925], ['colline-residence', 1.6000], ['al-murjan-palace', 1.5203],
+                  ['bousher-compound', 1.5000], ['al-murjan-palace-english-interior', 1.3997], ['mr-abdulrahman-apartment', 1.3168],
+                  ['al-nada-residence-apartment-03', 1.4815], ['olyx-residence-apartment-02', 1.4229], ['haraj-al-swarikh', 1.3997],
+                  ['al-jawhra-mall', 1.7769], ['mozzat-food-services', 1.7159]];
                   var last = null, K = 'heroFeature';
-                  try { last = localStorage.getItem(K); } catch (e) {}
+                  try { last = localStorage.getItem(K); } catch (e) { }
                   var pool = L.filter(function (x) { return x[0] !== last; });
                   var pick = pool[Math.floor(Math.random() * pool.length)];
-                  try { localStorage.setItem(K, pick[0]); } catch (e) {}
+                  try { localStorage.setItem(K, pick[0]); } catch (e) { }
                   var d = 'assets/work/' + pick[0] + '/cover-', img = document.getElementById('heroFeatImg');
                   img.dataset.ar = pick[1];
                   img.dataset.hiM = d + '1200.webp';
@@ -370,7 +373,7 @@
 
 
     <!-- ============ TEAM (rendered from js/team.js) ============ -->
-    <section class="team theme-dark" id="team">
+    <!-- <section class="team theme-dark" id="team">
       <div class="team__head">
         <h2 class="team__label" data-reveal>Team <span class="team__count" id="teamCount"></span></h2>
         <p class="team__hint" aria-hidden="true"><span class="team__hint-d">&larr; Drag to explore &rarr;</span><span
@@ -383,10 +386,10 @@
           standard.</p>
       </div>
       <div class="team__rows" id="teamRows" role="list" aria-label="The team"></div>
-    </section>
+    </section> -->
 
     <!-- ============ BLOG ============ -->
-    <section class="blog theme-light" id="blog">
+    <!-- <section class="blog theme-light" id="blog">
       <div class="blog__head">
         <h2 class="blog__label" data-reveal>Journal <span class="blog__count">(03)</span></h2>
         <a href="blog.html" class="blog__all" data-reveal>View all posts &rarr;</a>
@@ -423,7 +426,7 @@
           </a>
         </li>
       </ul>
-    </section>
+    </section> -->
 
     <!-- ============ IMAGE TRAIL ============ -->
     <section class="trail theme-dark" id="originals">
@@ -490,7 +493,8 @@
                   fill="currentColor" />
               </svg></a>
           </div>
-          <p class="contact-form__success" role="status" hidden>Thank you — your enquiry is on its way. We’ll be in touch soon.</p>
+          <p class="contact-form__success" role="status" hidden>Thank you — your enquiry is on its way. We’ll be in
+            touch soon.</p>
         </form>
       </div>
 
@@ -561,9 +565,9 @@
           </fieldset>
           <div class="contact-form__actions">
             <button class="contact-form__submit" type="submit">Submit</button>
-            <a class="contact-form__whatsapp" id="contactWhatsapp" data-enquiry-wa href="https://wa.me/201112880001" target="_blank"
-              rel="noopener" aria-label="Send your enquiry on WhatsApp" title="Send on WhatsApp">WhatsApp <svg
-                viewBox="0 0 32 32" aria-hidden="true">
+            <a class="contact-form__whatsapp" id="contactWhatsapp" data-enquiry-wa href="https://wa.me/201112880001"
+              target="_blank" rel="noopener" aria-label="Send your enquiry on WhatsApp"
+              title="Send on WhatsApp">WhatsApp <svg viewBox="0 0 32 32" aria-hidden="true">
                 <path
                   d="M16 3.2a12.6 12.6 0 0 0-10.7 19.2L4 28.8l6.6-1.7A12.7 12.7 0 1 0 16 3.2Zm0 22.9a10.2 10.2 0 0 1-5.2-1.4l-.4-.2-3.9 1 1-3.8-.3-.4A10.2 10.2 0 1 1 16 26.1Zm5.6-7.6c-.3-.2-1.9-.9-2.1-1s-.5-.2-.7.2-.8 1-1 1.2-.3.3-.6.1a8.4 8.4 0 0 1-2.5-1.6 9.3 9.3 0 0 1-1.7-2.2c-.2-.3 0-.5.1-.6l.5-.6c.2-.2.2-.4.3-.6s0-.4-.1-.6l-1-2.3c-.3-.7-.5-.6-.7-.6h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 3 .1 1.4.2 1.7c.2.4 2.5 3.8 6 5.3.8.4 1.5.6 2 .8.8.2 1.6.2 2.2.1.7-.1 1.9-.8 2.2-1.5s.3-1.4.2-1.5-.2-.2-.5-.4Z"
                   fill="currentColor" />
